@@ -3,17 +3,17 @@
 param([switch]$Zip = $true)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path | Split-Path -Parent
-Set-Location (Join-Path $root '')
-dotnet publish island\NotifyIsland.csproj -c Release -r win-x64 `
+Set-Location $root
+dotnet publish NotifyIsland.csproj -c Release -r win-x64 `
   --self-contained true `
   -p:WindowsAppSDKSelfContained=true `
   -p:WindowsPackageType=None `
-  -o island\publish
+  -o publish
 if ($Zip) {
-  $zip = Join-Path $root 'island\NotifyIsland-portable-win-x64.zip'
+  $zip = Join-Path $root 'NotifyIsland-portable-win-x64.zip'
   if (Test-Path $zip) { Remove-Item $zip }
-  Compress-Archive -Path (Join-Path $root 'island\publish\*') -DestinationPath $zip
+  Compress-Archive -Path (Join-Path $root 'publish\*') -DestinationPath $zip
   Write-Host "OK: $zip"
 } else {
-  Write-Host 'OK: island\publish\NotifyIsland.exe'
+  Write-Host 'OK: publish\NotifyIsland.exe'
 }
