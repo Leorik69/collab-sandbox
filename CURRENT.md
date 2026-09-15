@@ -1,17 +1,20 @@
 # Сейчас
 
-Хаб: https://github.com/Leorik69/collab-sandbox — здесь dump и ход работы. Slack только blob URL.
+Хаб: https://github.com/Leorik69/collab-sandbox
+
+## Политика human
+
+- A) Success = протокол в **Slack**
+- B) Правда = **Slack** (артефакты всё равно в этом репо / PR)
+- C) Нет ответа **15 мин** → CC решает сам. Бэкап решения: файл в `drop/NNN-cc-….md` (этот 002 — бэкап запроса про остров)
 
 ## 001
 
-Файлы уже в `drop/`:
+Сдано в drop: `001-nb-handoff.md`, `001-sl-review.md`.
 
-- NB: https://github.com/Leorik69/collab-sandbox/blob/main/drop/001-nb-handoff.md
-- SL: https://github.com/Leorik69/collab-sandbox/blob/main/drop/001-sl-review.md
+## 002 (активно)
 
-Если этих URL ещё не было в Slack — *NB*/*SL* киньте их одним сообщением каждый, без `/cursor` путей.
+Спека: https://github.com/Leorik69/collab-sandbox/blob/main/drop/002-cc-island-spec.md
 
-## Дальше
-
-Split PR #5 (`windhawk-mods`, 5 PR) можно после того, как 001-nb URL был в Slack.
-Следующие дрели — CC, в Slack + этот файл. 6-й мод отменён.
+*NB* — мод `taskbar-notify-island`, один PR в windhawk-mods.
+*SL* — review после push, не раньше.
