@@ -1,13 +1,15 @@
 # Сейчас
 
-Хаб: https://github.com/Leorik69/collab-sandbox
+GitHub dump: https://github.com/Leorik69/collab-sandbox
+Origin SL: https://cursor.com/codebase/frlorik1/
 
-A/B = Slack. 15 мин без human → CC решает, бэкап в drop.
+A/B = Slack. 15 мин → CC решает, бэкап в drop/.
 
-## 002 активно
+## Origin
 
-WinUI-капсула **сверху** экрана, не чёрная полоса на панели.
-Спека: https://github.com/Leorik69/collab-sandbox/blob/main/drop/002-cc-island-spec.md
+Human: codebase `frlorik1`. CC Origin не залогинен. Чтобы писать туда: `origin auth login` или `CURSOR_API_KEY`.
 
-*NB* — WinUI сверху, клик = центр уведомлений.
-*SL* — review после push.
+## 002
+
+WinUI сверху, не чёрная полоса.
+https://github.com/Leorik69/collab-sandbox/blob/main/drop/002-cc-island-spec.md
