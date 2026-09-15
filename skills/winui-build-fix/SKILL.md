@@ -13,4 +13,4 @@ Pitfalls:
 - Не коммить `bin/`, `obj/`, `*.user`, сгенерированный `AppxManifest`.
 - Unpackaged ≠ упакованный: не чини Appx-ошибку добавлением packaging.
 
-Проверка: `dotnet build island/NotifyIsland.csproj` зелёное, `git status` без `bin/obj`.
+Проверка: `dotnet build island/NotifyIsland.csproj` зеленое, `git status` без `bin/obj`.
