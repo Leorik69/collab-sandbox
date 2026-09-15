@@ -37,6 +37,12 @@ public enum IconSet
     Thin    // I2 — ExtraLight / thinner glyph
 }
 
+public enum IconSourceMode
+{
+    FontIcon,  // Segoe Fluent glyphs (default, no assets needed)
+    LocalAsset // PNG/SVG from island/Assets via ms-appx:///
+}
+
 public enum TempUnit
 {
     Celsius,
@@ -60,6 +66,7 @@ public sealed class IslandSettings
     public ClockStyle ClockStyle { get; set; } = ClockStyle.DigitalModern; // C1
     public WeatherMode WeatherMode { get; set; } = WeatherMode.Compact;    // W1
     public IconSet IconSet { get; set; } = IconSet.Fluent;                 // I1
+    public IconSourceMode IconSource { get; set; } = IconSourceMode.FontIcon; // 005: FontIcon vs Assets
     public TempUnit TempUnit { get; set; } = TempUnit.Celsius;
     public int Width { get; set; } = 240;
     public int Height { get; set; } = 40;
