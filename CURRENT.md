@@ -2,7 +2,14 @@
 
 Хаб: https://github.com/Leorik69/collab-sandbox
 
-## 005 активно — Island Icon Assets Pack & Source Switcher
+## 006 активно — Agent Learning Loop (skills + рефлексия)
+
+Спека: https://github.com/Leorik69/collab-sandbox/blob/main/drop/006-agent-learning-loop.md
+
+*NB* — Вести `skills/` (формат SKILL.md), писать рефлексию после задач, reuse в следующих.
+*SL* — Ревью навыков и переиспользования (`skills/island-laconic-review`).
+
+## 005 в работе — Island Icon Assets Pack & Source Switcher
 
 Спека: https://github.com/Leorik69/collab-sandbox/blob/main/drop/005-island-icon-assets-pack.md
 
