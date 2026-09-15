@@ -113,9 +113,7 @@ public sealed partial class MainWindow : Window
         GlowBorder.Opacity = _settings.BorderGlow ? 0.85 : 0;
 
         var filled = _settings.UnreadCount > 0 || _settings.DoNotDisturb; // I3 overlay
-        StateIcon.Glyph = _settings.DoNotDisturb ? "\uE708" : "\uEA8F";
-        StateIcon.FontWeight = _settings.IconSet == IconSet.Thin ? Microsoft.UI.Text.FontWeights.ExtraLight : Microsoft.UI.Text.FontWeights.Normal;
-        StateIcon.Foreground = new SolidColorBrush(filled ? accent : Colors.White);
+        ApplyStateIcon(filled, accent);
 
         Badge.Background = new SolidColorBrush(accent);
         if (_settings.UnreadCount > 0 && !_settings.DoNotDisturb)
@@ -175,11 +173,63 @@ public sealed partial class MainWindow : Window
         int c = 18, feels = 16, min = 12, max = 21;
         string Unit(int t) => _settings.TempUnit == TempUnit.Fahrenheit ? $"{t * 9 / 5 + 32}°F" : $"{t}°";
         WeatherTemp.Text = Unit(c);
-        WeatherGlyph.Glyph = WeatherGlyphExp.Glyph = "\uE706";
         WeatherDesc.Text = "Clear";
         WeatherFeels.Text = "feels " + Unit(feels);
         WeatherRange.Text = Unit(min) + " / " + Unit(max);
+        ApplyWeatherIcon("sun");
         ShowExpanded(_hovering && _settings.WeatherMode == WeatherMode.ExpandOnHover);
+    }
+
+    private bool UseAssets => _settings.IconSource == IconSourceMode.LocalAsset;
+
+    private static Microsoft.UI.Xaml.Media.Imaging.BitmapImage AssetImage(string relative)
+    {
+        return new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri("ms-appx:///Assets/" + relative));
+    }
+
+    private void ApplyWeatherIcon(string condition)
+    {
+        if (UseAssets)
+        {
+            WeatherGlyph.Visibility = WeatherGlyphExp.Visibility = Visibility.Collapsed;
+            WeatherImage.Visibility = WeatherImageExp.Visibility = Visibility.Visible;
+            try
+            {
+                WeatherImage.Source = AssetImage($"Weather/{condition}.png");
+                WeatherImageExp.Source = AssetImage($"Weather/{condition}.png");
+            }
+            catch { }
+        }
+        else
+        {
+            WeatherGlyph.Visibility = WeatherGlyphExp.Visibility = Visibility.Visible;
+            WeatherImage.Visibility = WeatherImageExp.Visibility = Visibility.Collapsed;
+            WeatherGlyph.Glyph = WeatherGlyphExp.Glyph = "\uE706";
+        }
+    }
+
+    private void ApplyStateIcon(bool filled, Color accent)
+    {
+        if (UseAssets)
+        {
+            StateIcon.Visibility = Visibility.Collapsed;
+            StateImage.Visibility = Visibility.Visible;
+            try
+            {
+                var name = _settings.DoNotDisturb ? "dnd-active"
+                    : _settings.UnreadCount > 0 ? "bell-unread" : "bell-none";
+                StateImage.Source = AssetImage($"Statuses/{name}.png");
+            }
+            catch { }
+        }
+        else
+        {
+            StateImage.Visibility = Visibility.Collapsed;
+            StateIcon.Visibility = Visibility.Visible;
+            StateIcon.Glyph = _settings.DoNotDisturb ? "\uE708" : "\uEA8F";
+            StateIcon.FontWeight = _settings.IconSet == IconSet.Thin ? Microsoft.UI.Text.FontWeights.ExtraLight : Microsoft.UI.Text.FontWeights.Normal;
+            StateIcon.Foreground = new SolidColorBrush(filled ? accent : Colors.White);
+        }
     }
 
     private void ShowExpanded(bool on)
@@ -270,6 +320,7 @@ public sealed partial class MainWindow : Window
         AddEnum("Clock", _settings.ClockStyle, v => _settings.ClockStyle = v);
         AddEnum("Weather", _settings.WeatherMode, v => _settings.WeatherMode = v);
         AddEnum("Icons", _settings.IconSet, v => _settings.IconSet = v);
+        AddEnum("Icon source", _settings.IconSource, v => _settings.IconSource = v);
         AddEnum("Temp", _settings.TempUnit, v => _settings.TempUnit = v);
         AddEnum("Material", _settings.Material, v => _settings.Material = v);
         menu.Items.Add(new MenuFlyoutSeparator());
