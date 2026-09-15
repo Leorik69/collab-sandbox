@@ -4,8 +4,29 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid x:Name="Root" Background="Transparent">
         <Border
+            x:Name="AuraHalo"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            CornerRadius="18"
+            Opacity="0"
+            IsHitTestVisible="False" />
+        <Border
+            x:Name="GlowRing"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            BorderThickness="2"
+            CornerRadius="18"
+            Opacity="0"
+            IsHitTestVisible="False" />
+        <Border
+            x:Name="GlowHost"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="Transparent"
+            IsHitTestVisible="False" />
+        <Border
             x:Name="Pill"
-            Width="168"
+            Width="212"
             Height="32"
             CornerRadius="16"
             BorderThickness="1"
@@ -16,35 +37,77 @@
             PointerExited="Pill_PointerExited"
             RightTapped="Pill_RightTapped">
             <Border.RenderTransform>
-                <ScaleTransform x:Name="PillScale" ScaleX="1" ScaleY="1" CenterX="84" CenterY="16" />
+                <TransformGroup>
+                    <ScaleTransform x:Name="AuraScale" ScaleX="1" ScaleY="1" CenterX="106" CenterY="16" />
+                    <ScaleTransform x:Name="HoverScale" ScaleX="1" ScaleY="1" CenterX="106" CenterY="16" />
+                </TransformGroup>
             </Border.RenderTransform>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                <FontIcon x:Name="StateIcon" Glyph="&#xEA8F;" FontSize="14" Foreground="#E6E6EB" />
-                <Border
-                    x:Name="Badge"
-                    MinWidth="16"
-                    Height="16"
-                    CornerRadius="8"
-                    Padding="4,0"
-                    Background="#E81123"
-                    Visibility="Collapsed"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        x:Name="BadgeText"
-                        FontSize="10"
-                        FontWeight="SemiBold"
-                        Foreground="White"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Center"
-                        Text="0" />
+            <Grid>
+                <Border x:Name="HoverBlush" Opacity="0" IsHitTestVisible="False" CornerRadius="16">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop x:Name="BlushA" Color="#33FFFFFF" Offset="0" />
+                            <GradientStop x:Name="BlushB" Color="#00FFFFFF" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
                 </Border>
-                <Ellipse
-                    x:Name="Dot"
-                    Width="8"
-                    Height="8"
-                    Fill="#66FFFFFF"
-                    Opacity="1" />
-            </StackPanel>
+                <StackPanel
+                    x:Name="Row"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="8"
+                    Padding="10,0">
+                    <StackPanel x:Name="ClockBlock" VerticalAlignment="Center" Spacing="1">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="ClockHH" FontFamily="Segoe UI Variable Display, Segoe Variable, Cascadia Mono" FontSize="15" FontWeight="SemiBold" Foreground="#F2F2F7" />
+                            <TextBlock x:Name="ClockColon" Text=":" FontFamily="Segoe UI Variable Display, Segoe Variable, Cascadia Mono" FontSize="15" FontWeight="SemiBold" Foreground="#F2F2F7" Margin="0,-1,0,0" />
+                            <TextBlock x:Name="ClockMM" FontFamily="Segoe UI Variable Display, Segoe Variable, Cascadia Mono" FontSize="15" FontWeight="SemiBold" Foreground="#F2F2F7" />
+                            <TextBlock x:Name="ClockSec" FontFamily="Segoe UI Variable Display, Segoe Variable, Cascadia Mono" FontSize="10" FontWeight="SemiBold" Foreground="#B8B8C0" Margin="3,3,0,0" Visibility="Collapsed" />
+                        </StackPanel>
+                        <ProgressBar x:Name="MinuteBar" Height="2" Minimum="0" Maximum="60" Width="72" Visibility="Collapsed" />
+                    </StackPanel>
+                    <StackPanel x:Name="WeatherBlock" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <FontIcon x:Name="WeatherIcon" Glyph="&#xE706;" FontSize="14" Foreground="#E6E6EB" VerticalAlignment="Center" />
+                        <TextBlock x:Name="WeatherTemp" FontFamily="Segoe UI Variable Display, Segoe Variable, Cascadia Mono" FontSize="13" FontWeight="SemiBold" Foreground="#E6E6EB" VerticalAlignment="Center" Text="18°C" />
+                        <StackPanel x:Name="WeatherExtra" VerticalAlignment="Center" Visibility="Collapsed" Spacing="0">
+                            <TextBlock x:Name="WeatherDesc" FontSize="10" Foreground="#D0D0D6" Text="Ясно" />
+                            <TextBlock x:Name="WeatherRange" FontSize="9" Foreground="#9A9AA4" Text="ощущ. 16° · 12–22°" />
+                        </StackPanel>
+                    </StackPanel>
+                    <FontIcon x:Name="StateIcon" Glyph="&#xEA8F;" FontSize="14" Foreground="#E6E6EB" VerticalAlignment="Center" />
+                    <Path x:Name="PathBell" Width="14" Height="14" Stretch="Uniform" Stroke="#E6E6EB" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="{x:Null}" Visibility="Collapsed" VerticalAlignment="Center" Data="M 4,12.5 L 5.2,10.2 L 5.2,7 C 5.2,5.2 6.4,3.8 8,3.8 C 9.6,3.8 10.8,5.2 10.8,7 L 10.8,10.2 L 12,12.5 M 6.3,13.2 C 6.6,14.3 7.2,14.8 8,14.8 C 8.8,14.8 9.4,14.3 9.7,13.2" />
+                    <Path x:Name="PathMoon" Width="14" Height="14" Stretch="Uniform" Stroke="#E6E6EB" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="{x:Null}" Visibility="Collapsed" VerticalAlignment="Center" Data="M 10.2,2.4 C 6.5,2.8 3.8,6 3.8,9.6 C 3.8,13.4 7,16.2 10.8,16.2 C 12.2,16.2 13.4,15.8 14.4,15.1 C 12.2,14.6 10.4,12.6 10.4,10.2 C 10.4,6.8 12.4,4 15.2,3.2 C 13.8,2.7 12,2.2 10.2,2.4" />
+                    <Path x:Name="PathMute" Width="14" Height="14" Stretch="Uniform" Stroke="#E6E6EB" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="{x:Null}" Visibility="Collapsed" VerticalAlignment="Center" Data="M 2.5,6.2 L 5,6.2 L 8.2,3.6 L 8.2,12.4 L 5,9.8 L 2.5,9.8 Z M 10.2,6 L 13.4,10 M 13.4,6 L 10.2,10" />
+                    <FontIcon x:Name="NetIcon" Glyph="&#xE701;" FontSize="13" Foreground="#E6E6EB" VerticalAlignment="Center" />
+                    <Path x:Name="PathWifi" Width="14" Height="14" Stretch="Uniform" Stroke="#E6E6EB" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="{x:Null}" Visibility="Collapsed" VerticalAlignment="Center" Data="M 2.5,8 C 5.5,5 10.5,5 13.5,8 M 4.5,10 C 6.5,8.2 9.5,8.2 11.5,10 M 8,13" />
+                    <Path x:Name="PathWifiOff" Width="14" Height="14" Stretch="Uniform" Stroke="#E6E6EB" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="{x:Null}" Visibility="Collapsed" VerticalAlignment="Center" Data="M 2.5,8 C 5.5,5 10.5,5 13.5,8 M 4.5,10 C 6.5,8.2 9.5,8.2 11.5,10 M 8,13 M 3,3 L 13,13" />
+                    <Border
+                        x:Name="Badge"
+                        MinWidth="16"
+                        Height="16"
+                        CornerRadius="8"
+                        Padding="4,0"
+                        Background="#E81123"
+                        Visibility="Collapsed"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            x:Name="BadgeText"
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Foreground="White"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Text="0" />
+                    </Border>
+                    <Ellipse
+                        x:Name="Dot"
+                        Width="8"
+                        Height="8"
+                        Fill="#66FFFFFF"
+                        Opacity="1" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>
