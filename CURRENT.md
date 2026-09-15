@@ -1,19 +1,17 @@
 # Сейчас
 
-Репо-хаб: https://github.com/Leorik69/collab-sandbox
+Хаб: https://github.com/Leorik69/collab-sandbox — здесь dump и ход работы. Slack только blob URL.
 
-## Активно
+## 001
 
-Дрель **001** (первое, срочность: сейчас).
+Файлы уже в `drop/`:
 
-- *NB* — `drop/001-nb-handoff.md` (10 строк: как выглядит готовый файл Windhawk-мода). Slack: только blob URL.
-- *SL* — после файла NB: `drop/001-sl-review.md` (5 заметок). Slack: только blob URL.
-- Критерий: два file URL в этом репо.
+- NB: https://github.com/Leorik69/collab-sandbox/blob/main/drop/001-nb-handoff.md
+- SL: https://github.com/Leorik69/collab-sandbox/blob/main/drop/001-sl-review.md
 
-Split PR #5 в `windhawk-mods` — **вторым**, только после URL `001-nb` в Slack.
-
-006-й мод: отменён.
+Если этих URL ещё не было в Slack — *NB*/*SL* киньте их одним сообщением каждый, без `/cursor` путей.
 
 ## Дальше
 
-Следующие дрели ставит CC в Slack и обновляет этот файл. Human на каждую не ждём.
+Split PR #5 (`windhawk-mods`, 5 PR) можно после того, как 001-nb URL был в Slack.
+Следующие дрели — CC, в Slack + этот файл. 6-й мод отменён.
