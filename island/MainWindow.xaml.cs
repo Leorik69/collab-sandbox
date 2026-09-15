@@ -81,21 +81,20 @@ public sealed partial class MainWindow : Window
         var (cw, ch) = IslandStyles.SuggestSize(_settings.ClockStyle, ExpandedWeather);
         _settings.Width = cw;
         _settings.Height = ch;
+        var layout = IslandOverlay.FromSuggested(cw, ch);
         var display = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Primary);
         var wa = display.WorkArea;
-        var w = Math.Clamp(cw, 120, 420);
-        var h = Math.Clamp(ch, 28, 64);
-        var x = wa.X + (wa.Width - w) / 2;
+        var x = wa.X + (wa.Width - layout.WindowW) / 2;
         var y = wa.Y + 6;
-        _appWindow.MoveAndResize(new RectInt32(x, y, w, h));
-        Pill.Width = Math.Max(80, w - 8);
-        Pill.Height = Math.Max(24, h - 8);
-        GlowRing.Width = AuraHalo.Width = Pill.Width + 10;
-        GlowRing.Height = AuraHalo.Height = Pill.Height + 10;
-        GlowHost.Width = Pill.Width;
-        GlowHost.Height = Pill.Height;
-        var cx = Pill.Width / 2;
-        var cy = Pill.Height / 2;
+        _appWindow.MoveAndResize(new RectInt32(x, y, layout.WindowW, layout.WindowH));
+        Pill.Width = layout.PillW;
+        Pill.Height = layout.PillH;
+        GlowRing.Width = AuraHalo.Width = layout.HaloW;
+        GlowRing.Height = AuraHalo.Height = layout.HaloH;
+        GlowHost.Width = layout.PillW;
+        GlowHost.Height = layout.PillH;
+        var cx = layout.PillW / 2.0;
+        var cy = layout.PillH / 2.0;
         AuraScale.CenterX = HoverScale.CenterX = cx;
         AuraScale.CenterY = HoverScale.CenterY = cy;
         HoverBlush.CornerRadius = Pill.CornerRadius;
@@ -326,7 +325,7 @@ public sealed partial class MainWindow : Window
             var anim = new DoubleAnimation
             {
                 From = 1,
-                To = 1.08,
+                To = IslandOverlay.AuraScale,
                 Duration = new Duration(TimeSpan.FromMilliseconds(700)),
                 AutoReverse = true
             };
@@ -385,8 +384,8 @@ public sealed partial class MainWindow : Window
     {
         if (_settings.HoverHighlight)
         {
-            HoverScale.ScaleX = 1.06;
-            HoverScale.ScaleY = 1.06;
+            HoverScale.ScaleX = IslandOverlay.HoverScale;
+            HoverScale.ScaleY = IslandOverlay.HoverScale;
             HoverBlush.Opacity = 1;
         }
         if (_settings.WeatherMode == WeatherMode.Compact)
