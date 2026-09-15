@@ -1,22 +1,15 @@
-# NotifyIsland (product)
+# NotifyIsland
 
-WinUI 3 Dynamic-Island капсула сверху экрана. Не чёрная полоса на taskbar.
-
-Спеки: `drop/002-cc-island-spec.md`, `drop/003-island-product-spec.md`.
-
-## Запуск (Windows)
+WinUI 3 capsule at top edge. Specs: drop/002, drop/003, drop/004.
 
 ```
-cd island
-dotnet run
+cd island && dotnet run
 ```
 
-Нужен .NET 8 SDK + Windows App SDK / VS workload с Appx packaging (иначе MSB4062 ExpandPriContent).
+## 004 (CC pack)
 
-## Возможности (003)
-
-- **ЛКМ** — центр уведомлений (Win+N). Без `SetTitleBar(Pill)` (клик не глотается).
-- **ПКМ** — меню: DND, материал (Solid/Acrylic/Mica), форма, скругление, прозрачность, акцент, демо-счётчик.
-- **Настройки** — `LocalSettings` JSON (`IslandSettings`).
-- **Реакции** — badge/точка, пульсация при unread, hover scale, иконка DND.
-- Always-on-top, ~176×40 top-center, часы/поиск не перекрываются на всю ширину.
+- Clock C1 Digital Modern (default, colon blink) · C2 Minimal · C3 Seconds+arc. Analog C4 later.
+- Weather W1 compact glyph+° · W2 expand on hover. Mock 18°C.
+- Icons I1 Fluent · I2 Thin · I3 Filled+Accent when DND/unread.
+- Effects E1 Border Glow (off) · E2 Pulse on **Pill** when unread · E3 hover.
+- RMB: clock/weather/icons/temp/glow/pulse. LMB → Win+N (no unread bump).

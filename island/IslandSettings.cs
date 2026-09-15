@@ -18,6 +18,31 @@ public enum IslandShape
     Oval
 }
 
+public enum ClockStyle
+{
+    DigitalModern,   // C1 — default, colon blink
+    DigitalMinimal,  // C2
+    SecondsMinuteArc // C3 — HH:MM:SS + minute arc
+}
+
+public enum WeatherMode
+{
+    Compact,       // W1 — glyph + temp always
+    ExpandOnHover  // W2 — desc + feels/min-max on hover
+}
+
+public enum IconSet
+{
+    Fluent, // I1 — default FontIcon
+    Thin    // I2 — ExtraLight / thinner glyph
+}
+
+public enum TempUnit
+{
+    Celsius,
+    Fahrenheit
+}
+
 public sealed class IslandSettings
 {
     public double CornerRadius { get; set; } = 16;
@@ -30,9 +55,21 @@ public sealed class IslandSettings
     public bool FollowSystemTheme { get; set; } = true;
     public bool DoNotDisturb { get; set; } = false;
     public int UnreadCount { get; set; } = 0;
-    public bool PulseOnUnread { get; set; } = true;
-    public int Width { get; set; } = 176;
+    public bool PulseAura { get; set; } = true;      // E2 on
+    public bool BorderGlow { get; set; } = false;    // E1 off
+    public ClockStyle ClockStyle { get; set; } = ClockStyle.DigitalModern; // C1
+    public WeatherMode WeatherMode { get; set; } = WeatherMode.Compact;    // W1
+    public IconSet IconSet { get; set; } = IconSet.Fluent;                 // I1
+    public TempUnit TempUnit { get; set; } = TempUnit.Celsius;
+    public int Width { get; set; } = 240;
     public int Height { get; set; } = 40;
+
+    // Back-compat alias for older persisted JSON
+    public bool PulseOnUnread
+    {
+        get => PulseAura;
+        set => PulseAura = value;
+    }
 
     private const string Key = "NotifyIsland.Settings.v1";
 
