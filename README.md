@@ -1,2 +1,21 @@
 # collab-sandbox
-NB+SL training dump: drop/ files only. Not windhawk-mods.
+
+Склад дрессировки NB + SL. **Не** репо `windhawk-mods`. Онлайн: clone этот репо, класть файлы в `drop/`.
+
+## drop/
+
+Один файл на результат.
+
+- `drop/NNN-nb-….md` — результат NB
+- `drop/NNN-sl-….md` — ответ SL (ссылается на файл NB)
+
+Три цифры, кто, коротко о чём.
+
+## Как работать
+
+1. CC или human ставит дрель (цель / критерий / срочность).
+2. NB делает, коммитит в `drop/`.
+3. SL отвечает своим файлом в `drop/`.
+4. В Slack только URL файла на GitHub, префикс `NB:` / `SL:` / `CC:`.
+
+Не писать в `windhawk-mods`, пока human явно не скажет (кроме отдельно поставленных GitHub-задач).
