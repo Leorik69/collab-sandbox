@@ -217,7 +217,7 @@ public sealed partial class MainWindow : Window
         ApplyPackClockLook();
         var now = DateTime.Now;
         MinuteArc.Visibility = _settings.ClockStyle == ClockStyle.SecondsMinuteArc ? Visibility.Visible : Visibility.Collapsed;
-        ClockText.FontNumeralAlignment = Microsoft.UI.Xaml.FontNumeralAlignment.Tabular;
+        Tabular(ClockText, WeatherTemp, WeatherFeels, WeatherRange, BadgeText);
         // HH:MM:SS in expanded = WinUI addition (not Packt Live Widget).
         if (_settings.ClockStyle == ClockStyle.SecondsMinuteArc || IsExpanded())
         {
@@ -404,6 +404,12 @@ public sealed partial class MainWindow : Window
         if (image.Source is BitmapImage existing && existing.UriSource?.OriginalString == uri)
             return;
         image.Source = new BitmapImage(new Uri(uri));
+    }
+
+    private static void Tabular(params TextBlock[] blocks)
+    {
+        foreach (var t in blocks)
+            Typography.SetNumeralAlignment(t, FontNumeralAlignment.Tabular);
     }
 
     private static Color ParseColor(string hex)

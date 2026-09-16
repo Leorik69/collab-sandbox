@@ -64,9 +64,11 @@ def main() -> int:
         fail("b: ExpandedRegion opacity should morph with size (not a visibility pop)")
 
     # c) hover must not move the pill; tabular figures
-    if "FontNumeralAlignment" not in xaml and "FontNumeralAlignment" not in cs:
-        fail("c: FontNumeralAlignment.Tabular required on clock")
-    elif "Tabular" not in xaml and "Tabular" not in cs:
+    if "FontNumeralAlignment=" in xaml:
+        fail("c: FontNumeralAlignment is not a WinUI 3 TextBlock XAML member (WMC0011)")
+    if "SetNumeralAlignment" not in cs and "FontNumeralAlignment" not in cs:
+        fail("c: FontNumeralAlignment.Tabular required on clock (Typography.SetNumeralAlignment)")
+    elif "Tabular" not in cs:
         fail("c: FontNumeralAlignment must be Tabular")
     clock = re.search(r'<TextBlock\s+x:Name="ClockText"[\s\S]*?/>', xaml)
     if not clock or "MinWidth" not in clock.group(0):
