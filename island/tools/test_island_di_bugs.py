@@ -50,8 +50,8 @@ def main() -> int:
         )
         if otc and "ConfigureDwm" in otc.group(0):
             fail("a: duplicate ConfigureDwm in OnTargetConnected; StripChrome owns DWM setup")
-        if "AttachHwnd" not in backdrop:
-            fail("a: AttachHwnd must own HWND hooking")
+        if "new WUC.Compositor" in backdrop or "new Windows.UI.Composition.Compositor" in backdrop:
+            fail("a: do not new WUC.Compositor() on the WinUI thread (E_INVALIDARG 80070057 / 0xc000027b)")
         for needle in (
             "DwmwaBorderColor",
             "DwmwaColorNone",
