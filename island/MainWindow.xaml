@@ -53,10 +53,11 @@
                         Spacing="1">
                         <TextBlock
                             x:Name="ClockText"
-                            FontFamily="Segoe UI Variable"
+                            FontFamily="Segoe UI Variable Display"
                             FontSize="12"
                             FontWeight="SemiBold"
                             Foreground="#F5F5F7"
+                            Typography.NumeralAlignment="Tabular"
                             Text="00:00" />
                         <ProgressBar
                             x:Name="MinuteArc"
@@ -77,10 +78,12 @@
                         VerticalAlignment="Center"
                         HorizontalAlignment="Right">
                         <StackPanel x:Name="WeatherCompact" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                            <FontIcon x:Name="WeatherGlyph" Glyph="&#xE706;" FontSize="12" Foreground="#F5F5F7" />
+                            <FontIcon x:Name="WeatherGlyph" Glyph="&#xE706;" FontSize="12" Foreground="#F5F5F7" Visibility="Collapsed" />
+                            <Image x:Name="WeatherGlyphImage" Width="12" Height="12" Stretch="Uniform" VerticalAlignment="Center" />
                             <TextBlock x:Name="WeatherTemp" FontSize="11" Foreground="#F5F5F7" VerticalAlignment="Center" Text="18°" />
                         </StackPanel>
-                        <FontIcon x:Name="StateIcon" Glyph="&#xEA8F;" FontSize="13" Foreground="#F5F5F7" />
+                        <FontIcon x:Name="StateIcon" Glyph="&#xEA8F;" FontSize="13" Foreground="#F5F5F7" Visibility="Collapsed" />
+                        <Image x:Name="StateIconImage" Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center" />
                         <Border
                             x:Name="Badge"
                             MinWidth="16"
@@ -109,7 +112,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel x:Name="ExpandedLeading" Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <FontIcon x:Name="WeatherGlyphExp" Glyph="&#xE706;" FontSize="12" Foreground="#F5F5F7" />
+                        <FontIcon x:Name="WeatherGlyphExp" Glyph="&#xE706;" FontSize="12" Foreground="#F5F5F7" Visibility="Collapsed" />
+                        <Image x:Name="WeatherGlyphExpImage" Width="12" Height="12" Stretch="Uniform" VerticalAlignment="Center" />
                         <TextBlock x:Name="WeatherDesc" FontSize="11" Foreground="#F5F5F7" VerticalAlignment="Center" Text="Clear" />
                     </StackPanel>
                     <StackPanel x:Name="ExpandedTrailing" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
