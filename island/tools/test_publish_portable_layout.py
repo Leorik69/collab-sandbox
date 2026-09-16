@@ -91,6 +91,9 @@ def test_csproj_includes_app_pri_in_publish() -> None:
         "csproj must add the app PRI to ResolvedFileToPublish (WASDK #6720)"
     )
     assert "resources.pri" in text
+    assert "_PublishedAppPri" in text, (
+        "must skip adding resources.pri if EnableMsixTooling already published it (NETSDK1152)"
+    )
 
 
 def test_bat_prefers_publish_then_root() -> None:

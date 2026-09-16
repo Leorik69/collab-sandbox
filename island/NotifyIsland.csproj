@@ -21,11 +21,14 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250205002" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
   </ItemGroup>
-  <!-- Unpackaged publish omits the app PRI unless MSIX publish wiring is imported
-       (WindowsAppSDK #3451/#3718/#6720). Without resources.pri, WinUI APPCRASHes
-       in Microsoft.UI.Xaml.dll (0xc000027b / combase 0x80004005). -->
+  <!-- Unpackaged publish often omits the app PRI (WASDK #3451/#3718/#6720).
+       EnableMsixTooling usually wires resources.pri; add it only if missing
+       (duplicate RelativePath → NETSDK1152). -->
   <Target Name="IncludeAppPriInPublish" AfterTargets="ComputeResolvedFilesToPublishList">
-    <PropertyGroup>
+    <ItemGroup>
+      <_PublishedAppPri Include="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.RelativePath)' == 'resources.pri' or '%(ResolvedFileToPublish.RelativePath)' == '$(AssemblyName).pri'" />
+    </ItemGroup>
+    <PropertyGroup Condition="'@(_PublishedAppPri)' == ''">
       <_AppPri Condition="Exists('$(OutputPath)resources.pri')">$(OutputPath)resources.pri</_AppPri>
       <_AppPri Condition="'$(_AppPri)' == '' and Exists('$(OutputPath)$(AssemblyName).pri')">$(OutputPath)$(AssemblyName).pri</_AppPri>
       <_AppPri Condition="'$(_AppPri)' == '' and Exists('$(OutDir)resources.pri')">$(OutDir)resources.pri</_AppPri>
