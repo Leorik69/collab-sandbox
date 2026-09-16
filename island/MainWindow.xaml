@@ -3,7 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid x:Name="Root" Background="Transparent">
-        <!-- E1 Border Glow host (extra Border behind Pill) -->
         <Border
             x:Name="GlowBorder"
             Width="232"
@@ -39,7 +38,6 @@
                     VerticalAlignment="Center"
                     Spacing="6"
                     Padding="8,0">
-                    <!-- Clock -->
                     <StackPanel Orientation="Vertical" VerticalAlignment="Center" Spacing="1">
                         <TextBlock
                             x:Name="ClockText"
@@ -49,7 +47,6 @@
                             Foreground="#E6E6EB"
                             VerticalAlignment="Center"
                             Text="00:00" />
-                        <!-- C3 minute arc (thin progress) -->
                         <ProgressBar
                             x:Name="MinuteArc"
                             Width="44"
@@ -59,13 +56,13 @@
                             Value="0"
                             Visibility="Collapsed" />
                     </StackPanel>
-                    <!-- Weather compact (W1) -->
                     <StackPanel
                         x:Name="WeatherCompact"
                         Orientation="Horizontal"
                         Spacing="3"
                         VerticalAlignment="Center">
                         <FontIcon x:Name="WeatherGlyph" Glyph="&#xE706;" FontSize="12" Foreground="#E6E6EB" />
+                        <Image x:Name="WeatherImage" Width="14" Height="14" Visibility="Collapsed" />
                         <TextBlock
                             x:Name="WeatherTemp"
                             FontSize="11"
@@ -73,9 +70,8 @@
                             VerticalAlignment="Center"
                             Text="18°" />
                     </StackPanel>
-                    <!-- State / notification icon (I1/I2/I3) -->
                     <FontIcon x:Name="StateIcon" Glyph="&#xEA8F;" FontSize="14" Foreground="#E6E6EB" />
-                    <!-- Unread badge -->
+                    <Image x:Name="StateImage" Width="16" Height="16" Visibility="Collapsed" />
                     <Border
                         x:Name="Badge"
                         MinWidth="16"
@@ -101,7 +97,6 @@
                         Fill="#66FFFFFF"
                         Opacity="1" />
                 </StackPanel>
-                <!-- W2 expanded weather overlay (hover) -->
                 <Border
                     x:Name="WeatherExpanded"
                     Background="#CC1C1C1E"
@@ -112,6 +107,7 @@
                     Visibility="Collapsed">
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon x:Name="WeatherGlyphExp" Glyph="&#xE706;" FontSize="14" Foreground="#E6E6EB" />
+                        <Image x:Name="WeatherImageExp" Width="16" Height="16" Visibility="Collapsed" />
                         <TextBlock x:Name="WeatherDesc" FontSize="11" Foreground="#E6E6EB" VerticalAlignment="Center" Text="Clear" />
                         <TextBlock x:Name="WeatherFeels" FontSize="10" Foreground="#A0A0A8" VerticalAlignment="Center" Text="feels 16°" />
                         <TextBlock x:Name="WeatherRange" FontSize="10" Foreground="#A0A0A8" VerticalAlignment="Center" Text="12° / 21°" />
