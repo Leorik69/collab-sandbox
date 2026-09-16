@@ -160,6 +160,10 @@ def test_main_window_wires_live_switch() -> None:
         fail("Colorful amber colon must use TextBlock Runs (blink via _colonOn)")
     if "ThemeShadow" not in cs + xaml and "ClockText.Shadow" not in cs:
         fail("Neon pack must apply ThemeShadow (soft default shadow ok)")
+    if "FontNumeralAlignment.Default" in cs:
+        fail("WinUI FontNumeralAlignment has Normal/Tabular/Proportional, not Default")
+    if "FontNumeralAlignment.Tabular" not in cs:
+        fail("ApplyClockStyle must set FontNumeralAlignment.Tabular for pack digits")
     if "FontFamily" not in cs or "CharacterSpacing" not in cs:
         fail("ApplyClockStyle must apply pack font/spacing; ClockStyle keeps HH:mm vs seconds/arc")
 

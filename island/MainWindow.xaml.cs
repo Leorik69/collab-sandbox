@@ -222,7 +222,7 @@ public sealed partial class MainWindow : Window
         ClockText.Foreground = digitBrush;
         ClockText.CharacterSpacing = look.CharacterSpacing;
         Typography.SetNumeralAlignment(ClockText,
-            look.TabularNumerals ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Default);
+            look.TabularNumerals ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
         if (look.NeonShadow)
         {
             ClockText.Shadow = _clockShadow;
@@ -315,11 +315,20 @@ public sealed partial class MainWindow : Window
         image.ImageOpened += PackImageOpened;
         image.ImageFailed -= PackImageFailed;
         image.ImageFailed += PackImageFailed;
-        fallback.Visibility = Visibility.Visible;
-        image.Visibility = Visibility.Collapsed;
+        var keepImage = image.Visibility == Visibility.Visible;
         try
         {
             image.Source = new BitmapImage(new Uri(uri));
+            if (keepImage)
+            {
+                image.Visibility = Visibility.Visible;
+                fallback.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                fallback.Visibility = Visibility.Visible;
+                image.Visibility = Visibility.Collapsed;
+            }
         }
         catch
         {
