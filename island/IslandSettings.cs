@@ -67,6 +67,21 @@ public enum PresentationMode
     Minimal
 }
 
+public enum TransparencyLevel
+{
+    Solid,
+    Soft,
+    Glass
+}
+
+public enum UnreadAnimation
+{
+    Pulse,
+    Glow,
+    SoftBounce,
+    Off
+}
+
 public sealed class IslandSettings
 {
     public double CornerRadius { get; set; } = 16;
@@ -81,7 +96,14 @@ public sealed class IslandSettings
     public bool DoNotDisturb { get; set; } = false;
     public int UnreadCount { get; set; } = 0;
     public bool PulseAura { get; set; } = true;
+    public UnreadAnimation UnreadAnim { get; set; } = UnreadAnimation.Pulse;
     public bool BorderGlow { get; set; } = false;
+    public double IslandGlowIntensity { get; set; } = 0;
+    public bool ClockGlow { get; set; } = false;
+    public double ClockGlowIntensity { get; set; } = 0;
+    public double BorderThickness { get; set; } = 1;
+    public bool SettingsDark { get; set; } = true;
+    public bool CustomPalette { get; set; } = false;
     public ClockStyle ClockStyle { get; set; } = ClockStyle.DigitalModern;
     public WeatherMode WeatherMode { get; set; } = WeatherMode.ExpandOnHover;
     public IconSet IconSet { get; set; } = IconSet.Fluent;
@@ -96,6 +118,30 @@ public sealed class IslandSettings
         set => PulseAura = value;
     }
 
+    public TransparencyLevel GetTransparency() =>
+        Opacity >= 0.92 ? TransparencyLevel.Solid
+        : Opacity >= 0.68 ? TransparencyLevel.Soft
+        : TransparencyLevel.Glass;
+
+    public void SetTransparency(TransparencyLevel level) =>
+        Opacity = level switch
+        {
+            TransparencyLevel.Soft => 0.82,
+            TransparencyLevel.Glass => 0.55,
+            _ => 1.0
+        };
+
+    public void SyncDerived()
+    {
+        PulseAura = UnreadAnim != UnreadAnimation.Off;
+        BorderGlow = IslandGlowIntensity > 0.02;
+        ClockGlow = ClockGlowIntensity > 0.02;
+        BorderThickness = Math.Clamp(BorderThickness, 0.5, 4);
+        IslandGlowIntensity = Math.Clamp(IslandGlowIntensity, 0, 1);
+        ClockGlowIntensity = Math.Clamp(ClockGlowIntensity, 0, 1);
+        Opacity = Math.Clamp(Opacity, 0.2, 1);
+    }
+
     private const string Key = "NotifyIsland.Settings.v1";
 
     public static IslandSettings Load()
@@ -106,7 +152,15 @@ public sealed class IslandSettings
             if (values.TryGetValue(Key, out var raw) && raw is string json && !string.IsNullOrWhiteSpace(json))
             {
                 var s = JsonSerializer.Deserialize<IslandSettings>(json);
-                if (s != null) return s;
+                if (s != null)
+                {
+                    if (!s.PulseAura && s.UnreadAnim == UnreadAnimation.Pulse)
+                        s.UnreadAnim = UnreadAnimation.Off;
+                    if (s.BorderGlow && s.IslandGlowIntensity <= 0.02)
+                        s.IslandGlowIntensity = 0.85;
+                    s.SyncDerived();
+                    return s;
+                }
             }
         }
         catch

@@ -33,7 +33,10 @@
             RightTapped="Pill_RightTapped"
             SizeChanged="Pill_SizeChanged">
             <Border.RenderTransform>
-                <ScaleTransform x:Name="PillScale" ScaleX="1" ScaleY="1" CenterX="88" CenterY="16" />
+                <TransformGroup>
+                    <ScaleTransform x:Name="PillScale" ScaleX="1" ScaleY="1" CenterX="88" CenterY="16" />
+                    <TranslateTransform x:Name="PillNudge" />
+                </TransformGroup>
             </Border.RenderTransform>
             <StackPanel
                 VerticalAlignment="Center"
@@ -53,16 +56,27 @@
                         VerticalAlignment="Center"
                         HorizontalAlignment="Left"
                         Spacing="1">
-                        <!-- MinWidth 80: tabular Segoe UI Variable SemiBold 12pt HH:MM:SS; 64 was tight -->
-                        <TextBlock
-                            x:Name="ClockText"
-                            FontFamily="Segoe UI Variable Display"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            MinWidth="80"
-                            Foreground="#F5F5F7"
-                            Typography.NumeralAlignment="Tabular"
-                            Text="00:00" />
+                        <Grid HorizontalAlignment="Left">
+                            <TextBlock
+                                x:Name="ClockGlowText"
+                                FontFamily="Segoe UI Variable Display"
+                                FontSize="13"
+                                FontWeight="Bold"
+                                MinWidth="80"
+                                Foreground="#FF9F0A"
+                                Opacity="0"
+                                IsHitTestVisible="False"
+                                Text="00:00" />
+                            <TextBlock
+                                x:Name="ClockText"
+                                FontFamily="Segoe UI Variable Display"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                MinWidth="80"
+                                Foreground="#F5F5F7"
+                                Typography.NumeralAlignment="Tabular"
+                                Text="00:00" />
+                        </Grid>
                         <ProgressBar
                             x:Name="MinuteArc"
                             Width="44"
