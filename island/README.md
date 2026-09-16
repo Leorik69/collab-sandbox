@@ -16,6 +16,20 @@ Ref: [Packt Dynamic Island](https://github.com/PacktPublishing/Mastering-WidgetK
 - Fluent instead of SF Symbols. Pulse = scale + opacity, unread only. No idle blue dot.
 - RMB: Presentation + existing clock/weather/icons. LMB → Win+N (unchanged).
 
+## Portable (без сборки из исходников)
+
+Unpackaged self-contained `win-x64`, **не MSIX** (`island/packaging/MSIX-NOTE.md`). Бинарники в git не лежат.
+
+**Скачать zip с PR:** GitHub → PR Checks / Actions → workflow **Portable win-x64** → Artifacts → `NotifyIsland-portable-win-x64`. Распаковать и запустить `NotifyIsland.exe` (рядом можно `Запустить.bat` / `Start-Portable.ps1`).
+
+**Локально (Windows):**
+
+```powershell
+cd island
+powershell -ExecutionPolicy Bypass -File tools\Publish-Portable.ps1
+# zip: NotifyIsland-portable-win-x64.zip  |  exe: publish\NotifyIsland.exe
+```
+
 ## 004 (CC pack)
 
 - Clock C1 Digital Modern (default, colon blink) · C2 Minimal · C3 Seconds+arc. Analog C4 later.

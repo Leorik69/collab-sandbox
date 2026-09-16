@@ -1,0 +1,90 @@
+name: Portable win-x64
+
+on:
+  push:
+    paths:
+      - "island/**"
+      - ".github/workflows/portable-win-x64.yml"
+  pull_request:
+    paths:
+      - "island/**"
+      - ".github/workflows/portable-win-x64.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: island
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish unpackaged self-contained
+        run: >
+          dotnet publish NotifyIsland.csproj
+          -c Release -r win-x64
+          --self-contained true
+          -p:WindowsAppSDKSelfContained=true
+          -p:WindowsPackageType=None
+          -o publish
+
+      - name: Zip portable pack
+        run: |
+          $zipPath = Join-Path (Get-Location) 'NotifyIsland-portable-win-x64.zip'
+          if (Test-Path $zipPath) { Remove-Item $zipPath }
+          Compress-Archive -Path (Join-Path (Get-Location) 'publish\*') -DestinationPath $zipPath
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotifyIsland-portable-win-x64
+          path: island/NotifyIsland-portable-win-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Comment artifact link on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- portable-zip-artifact -->';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+            const body = [
+              marker,
+              'Portable **NotifyIsland-portable-win-x64.zip** (unpackaged `.exe`, не MSIX).',
+              '',
+              `Скачать: [этот run](${runUrl}) → Artifacts → \`NotifyIsland-portable-win-x64\`.`,
+              'Распаковать и запустить `NotifyIsland.exe` (или `Запустить.bat` / `Start-Portable.ps1`).',
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const found = comments.find(c => c.body && c.body.includes(marker));
+            if (found) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: found.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
