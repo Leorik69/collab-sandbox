@@ -8,6 +8,8 @@
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Wires app resources.pri into unpackaged Publish. Do not also add it via
+         ResolvedFileToPublish — duplicate relative path fails NETSDK1152. -->
     <EnableMsixTooling>true</EnableMsixTooling>
     <SelfContained>true</SelfContained>
     <PublishTrimmed>false</PublishTrimmed>
@@ -21,24 +23,4 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250205002" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
   </ItemGroup>
-  <!-- Unpackaged publish often omits the app PRI (WASDK #3451/#3718/#6720).
-       EnableMsixTooling usually wires resources.pri; add it only if missing
-       (duplicate RelativePath → NETSDK1152). -->
-  <Target Name="IncludeAppPriInPublish" AfterTargets="ComputeResolvedFilesToPublishList">
-    <ItemGroup>
-      <_PublishedAppPri Include="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.RelativePath)' == 'resources.pri' or '%(ResolvedFileToPublish.RelativePath)' == '$(AssemblyName).pri'" />
-    </ItemGroup>
-    <PropertyGroup Condition="'@(_PublishedAppPri)' == ''">
-      <_AppPri Condition="Exists('$(OutputPath)resources.pri')">$(OutputPath)resources.pri</_AppPri>
-      <_AppPri Condition="'$(_AppPri)' == '' and Exists('$(OutputPath)$(AssemblyName).pri')">$(OutputPath)$(AssemblyName).pri</_AppPri>
-      <_AppPri Condition="'$(_AppPri)' == '' and Exists('$(OutDir)resources.pri')">$(OutDir)resources.pri</_AppPri>
-      <_AppPri Condition="'$(_AppPri)' == '' and Exists('$(OutDir)$(AssemblyName).pri')">$(OutDir)$(AssemblyName).pri</_AppPri>
-    </PropertyGroup>
-    <ItemGroup Condition="'$(_AppPri)' != ''">
-      <ResolvedFileToPublish Include="$(_AppPri)">
-        <RelativePath>resources.pri</RelativePath>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      </ResolvedFileToPublish>
-    </ItemGroup>
-  </Target>
 </Project>
