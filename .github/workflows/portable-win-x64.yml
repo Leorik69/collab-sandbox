@@ -39,6 +39,22 @@ jobs:
       - name: Publish unpackaged self-contained
         run: ./tools/Publish-Portable.ps1 -Zip
 
+      - name: Verify zip root has exe and launchers
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zipPath = Join-Path (Get-Location) 'NotifyIsland-portable-win-x64.zip'
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+          try {
+            $names = $zip.Entries | ForEach-Object { $_.FullName }
+            foreach ($need in @('NotifyIsland.exe', 'Запустить.bat', 'Start-Portable.ps1')) {
+              if ($names -notcontains $need) {
+                throw "Zip root missing '$need'. Entries: $($names -join ', ')"
+              }
+            }
+          } finally {
+            $zip.Dispose()
+          }
+
       - uses: actions/upload-artifact@v4
         with:
           name: NotifyIsland-portable-win-x64
@@ -58,7 +74,7 @@ jobs:
               'Portable **NotifyIsland-portable-win-x64.zip** (unpackaged `.exe`, не MSIX).',
               '',
               `Скачать: [этот run](${runUrl}) → Artifacts → \`NotifyIsland-portable-win-x64\`.`,
-              'Распаковать и запустить `NotifyIsland.exe` (или `Запустить.bat` / `Start-Portable.ps1`).',
+              'Распаковать: в корне zip `NotifyIsland.exe` и `Запустить.bat` (также `Start-Portable.ps1`).',
             ].join('\n');
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,

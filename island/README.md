@@ -20,7 +20,7 @@ Ref: [Packt Dynamic Island](https://github.com/PacktPublishing/Mastering-WidgetK
 
 Unpackaged self-contained `win-x64`, **не MSIX** (`island/packaging/MSIX-NOTE.md`). Бинарники в git не лежат.
 
-**Скачать zip с PR:** GitHub → PR Checks / Actions → workflow **Portable win-x64** → Artifacts → `NotifyIsland-portable-win-x64`. Распаковать и запустить `NotifyIsland.exe` (рядом можно `Запустить.bat` / `Start-Portable.ps1`).
+**Скачать zip с PR:** GitHub → PR Checks / Actions → workflow **Portable win-x64** → Artifacts → `NotifyIsland-portable-win-x64`. Распаковать: в корне zip `NotifyIsland.exe` и `Запустить.bat` (также `Start-Portable.ps1`).
 
 **Локально (Windows, нужен VS 2022 + Windows app development; чистый `dotnet` SDK ловит MSB4062):**
 

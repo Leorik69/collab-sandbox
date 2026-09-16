@@ -1,4 +1,4 @@
-# Publish portable self-contained build (Windows, unpackaged WinUI3, win-x64)
+﻿# Publish portable self-contained build (Windows, unpackaged WinUI3, win-x64)
 # Usage: powershell -ExecutionPolicy Bypass -File tools\Publish-Portable.ps1 [-Zip]
 # Prefer VS MSBuild: `dotnet publish` hits MSB4062 ExpandPriContent (Appx tasks missing from SDK).
 param([switch]$Zip = $true)
@@ -34,6 +34,18 @@ if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
   /p:GenerateAppxPackageOnBuild=false `
   /p:PublishDir="$publishDir\"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Zip is publish\* at root — copy one-click launchers beside the exe.
+$launchers = @(
+  (Join-Path $root 'Запустить.bat'),
+  (Join-Path $root 'Start-Portable.ps1')
+)
+foreach ($launcher in $launchers) {
+  if (-not (Test-Path -LiteralPath $launcher)) {
+    throw "Portable launcher missing: $launcher"
+  }
+  Copy-Item -LiteralPath $launcher -Destination $publishDir -Force
+}
 
 if ($Zip) {
   $zipPath = Join-Path $root 'NotifyIsland-portable-win-x64.zip'
