@@ -8,7 +8,7 @@
 Референс: https://github.com/PacktPublishing/Mastering-WidgetKit-in-SwiftUI-4-iOS-16-with-Dynamic-Island (Live Widget UI **404**).
 
 *NB* — чёрная капсула, `PresentationMode` Compact|Expanded|Minimal, morph, orange `#FF9F0A` keyline.  
-*SL* — ревью после PR.
+*SL* — баги a–d (chrome / morph / hover / RMB). Ideal UX: `drop/008-island-ideal-ux.md` (план, код ждёт research).
 
 ## 006 активно — Agent Learning Loop (skills + рефлексия)
 

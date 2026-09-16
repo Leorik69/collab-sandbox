@@ -5,6 +5,10 @@ using Windows.Storage;
 
 namespace NotifyIsland;
 
+/// <summary>
+/// Stored in LocalSettings JSON. Unused for the host HWND (always TransparentBackdrop;
+/// Mica/Acrylic on the HWND would recreate the rectangular frame).
+/// </summary>
 public enum MaterialMode
 {
     Solid,
@@ -67,6 +71,7 @@ public sealed class IslandSettings
 {
     public double CornerRadius { get; set; } = 16;
     public double Opacity { get; set; } = 1.0;
+    /// <summary>Unused for HWND; kept so LocalSettings JSON still deserializes.</summary>
     public MaterialMode Material { get; set; } = MaterialMode.Solid;
     public IslandShape Shape { get; set; } = IslandShape.Capsule;
     public string BackgroundHex { get; set; } = "#0A0A0A";

@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Foundation;
 using Windows.Graphics;
 using Windows.UI;
 using WinRT.Interop;
@@ -36,16 +37,16 @@ public sealed partial class MainWindow : Window
     private Storyboard? _morph;
     private DoubleAnimation? _morphW;
     private DoubleAnimation? _morphH;
+    private DoubleAnimation? _morphOp;
     private AppWindow? _appWindow;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private bool _colonOn = true;
     private bool _hovering;
+    private bool _menuOpen;
     private SolidColorBrush? _keylineBrush;
     private Color _keylineCached;
-    private double _placeW, _placeH;
-    private int _morphGen;
-    private int _placeWhenGen;
     private ThemeShadow? _clockNeonShadow;
+    private RectangleGeometry? _pillClip;
 
     public MainWindow()
     {
@@ -75,6 +76,10 @@ public sealed partial class MainWindow : Window
             presenter.IsMinimizable = false;
             presenter.SetBorderAndTitleBar(false, false);
         }
+        var host = new TransparentBackdrop();
+        SystemBackdrop = host;
+        host.AttachHwnd(hwnd);
+        PlaceWindow();
         Reposition();
     }
 
@@ -87,7 +92,13 @@ public sealed partial class MainWindow : Window
 
     private bool IsExpanded() =>
         _settings.Presentation == PresentationMode.Expanded
-        || (_hovering && _settings.Presentation == PresentationMode.Compact);
+        || ((_hovering || _menuOpen) && _settings.Presentation == PresentationMode.Compact);
+
+    private bool ShowExpandedExtras() =>
+        IsExpanded()
+        && _settings.Presentation != PresentationMode.Minimal
+        && (_settings.Presentation == PresentationMode.Expanded
+            || _settings.WeatherMode == WeatherMode.ExpandOnHover);
 
     private void Reposition()
     {
@@ -95,22 +106,22 @@ public sealed partial class MainWindow : Window
         var (pw, ph) = PillSize();
         Pill.Width = pw;
         Pill.Height = ph;
-        PlaceWindow(pw, ph);
+        PlaceWindow();
         SyncChrome();
     }
 
-    private static (int w, int h) WindowPixelSize(double pillW, double pillH)
+    private static (int w, int h) HostPixelSize()
     {
-        var w = (int)Math.Clamp(Math.Round(pillW) + PadW, 140, 360);
-        var h = (int)Math.Clamp(Math.Round(pillH) + PadH, 40, 88);
+        var w = (int)Math.Clamp(Math.Round(ExpandedW) + PadW, 140, 360);
+        var h = (int)Math.Clamp(Math.Round(ExpandedH) + PadH, 40, 88);
         return (w, h);
     }
 
-    private void PlaceWindow(double pillW, double pillH)
+    private void PlaceWindow()
     {
         if (_appWindow is null) return;
         var wa = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
-        var (w, h) = WindowPixelSize(pillW, pillH);
+        var (w, h) = HostPixelSize();
         _appWindow.MoveAndResize(new RectInt32(wa.X + (wa.Width - w) / 2, wa.Y + 6, w, h));
     }
 
@@ -132,7 +143,21 @@ public sealed partial class MainWindow : Window
         Pill.CornerRadius = new CornerRadius(radius);
     }
 
-    private void Pill_SizeChanged(object sender, SizeChangedEventArgs e) => SyncChrome();
+    private void Pill_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        SyncChrome();
+        if (e.NewSize.Width <= 0 || e.NewSize.Height <= 0) return;
+        var rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height);
+        if (_pillClip is null)
+        {
+            _pillClip = new RectangleGeometry { Rect = rect };
+            Pill.Clip = _pillClip;
+        }
+        else
+        {
+            _pillClip.Rect = rect;
+        }
+    }
 
     private void ApplySettings()
     {
@@ -149,16 +174,8 @@ public sealed partial class MainWindow : Window
         var bg = ParseColor(_settings.BackgroundHex);
         var accent = ParseColor("#FF9F0A"); // CC: paint orange keyline; do not rewrite LocalSettings
         var a = (byte)(255 * Math.Clamp(_settings.Opacity, 0.2, 1.0));
-        try
-        {
-            SystemBackdrop = _settings.Material switch
-            {
-                MaterialMode.Mica => new MicaBackdrop(),
-                MaterialMode.Acrylic => new DesktopAcrylicBackdrop(),
-                _ => null
-            };
-        }
-        catch { SystemBackdrop = null; }
+        // Host stays TransparentBackdrop. Ignore MaterialMode — Mica/Acrylic on the HWND
+        // would recreate the rectangular frame (bug a). Enum kept for LocalSettings JSON.
 
         Pill.Background = new SolidColorBrush(Color.FromArgb(a, bg.R, bg.G, bg.B));
         var keyline = KeylineBrush(accent);
@@ -211,6 +228,7 @@ public sealed partial class MainWindow : Window
         ApplyPackClockLook();
         var now = DateTime.Now;
         MinuteArc.Visibility = _settings.ClockStyle == ClockStyle.SecondsMinuteArc ? Visibility.Visible : Visibility.Collapsed;
+        Tabular(ClockText, WeatherTemp, WeatherFeels, WeatherRange, BadgeText);
         // HH:MM:SS in expanded = WinUI addition (not Packt Live Widget).
         if (_settings.ClockStyle == ClockStyle.SecondsMinuteArc || IsExpanded())
         {
@@ -219,7 +237,7 @@ public sealed partial class MainWindow : Window
         }
         else
         {
-            var sep = _settings.ClockStyle == ClockStyle.DigitalModern && !_colonOn ? " " : ":";
+            var sep = _settings.ClockStyle == ClockStyle.DigitalModern && !_colonOn ? "\u2007" : ":";
             SetClockParts(now.ToString("HH"), sep, now.ToString("mm"));
         }
     }
@@ -318,11 +336,8 @@ public sealed partial class MainWindow : Window
     private void ApplyPresentation()
     {
         var minimal = _settings.Presentation == PresentationMode.Minimal;
-        var expanded = IsExpanded() && !minimal;
         CompactTrailing.Visibility = minimal ? Visibility.Collapsed : Visibility.Visible;
-        var extras = expanded && (_settings.Presentation == PresentationMode.Expanded
-            || _settings.WeatherMode == WeatherMode.ExpandOnHover);
-        ExpandedRegion.Visibility = extras ? Visibility.Visible : Visibility.Collapsed;
+        ExpandedRegion.IsHitTestVisible = ShowExpandedExtras();
         MorphTo();
     }
 
@@ -331,26 +346,26 @@ public sealed partial class MainWindow : Window
         _morph = new Storyboard();
         var duration = new Duration(TimeSpan.FromMilliseconds(MorphMs));
         var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
-        _morphW = MorphAnim("Width", duration, ease);
-        _morphH = MorphAnim("Height", duration, ease);
+        _morphW = MorphAnim(Pill, "Width", duration, ease);
+        _morphH = MorphAnim(Pill, "Height", duration, ease);
+        _morphOp = MorphAnim(ExpandedRegion, "Opacity", duration, ease);
         _morph.Children.Add(_morphW);
         _morph.Children.Add(_morphH);
+        _morph.Children.Add(_morphOp);
         _morph.Completed += Morph_Completed;
     }
 
-    private DoubleAnimation MorphAnim(string prop, Duration duration, EasingFunctionBase ease)
+    private static DoubleAnimation MorphAnim(DependencyObject target, string prop, Duration duration, EasingFunctionBase ease)
     {
         var a = new DoubleAnimation { Duration = duration, EasingFunction = ease };
-        Storyboard.SetTarget(a, Pill);
+        Storyboard.SetTarget(a, target);
         Storyboard.SetTargetProperty(a, prop);
         return a;
     }
 
-    private void Morph_Completed(object sender, object e)
+    private void Morph_Completed(object? sender, object e)
     {
-        if (_placeWhenGen != _morphGen) return;
-        _placeWhenGen = 0;
-        PlaceWindow(_placeW, _placeH);
+        ExpandedRegion.IsHitTestVisible = ShowExpandedExtras();
     }
 
     private void MorphTo()
@@ -358,21 +373,7 @@ public sealed partial class MainWindow : Window
         var (w, h) = PillSize();
         _morphW!.To = w;
         _morphH!.To = h;
-        _placeW = w;
-        _placeH = h;
-        var gen = ++_morphGen;
-
-        var (tw, th) = WindowPixelSize(w, h);
-        var cur = _appWindow?.Size ?? default;
-        var grow = _appWindow is null || tw > cur.Width || th > cur.Height;
-        if (grow)
-        {
-            _placeWhenGen = 0;
-            PlaceWindow(w, h);
-        }
-        else
-            _placeWhenGen = gen;
-
+        _morphOp!.To = ShowExpandedExtras() ? 1 : 0;
         _morph!.Begin();
     }
 
@@ -416,6 +417,12 @@ public sealed partial class MainWindow : Window
         image.Source = new BitmapImage(new Uri(uri));
     }
 
+    private static void Tabular(params TextBlock[] blocks)
+    {
+        foreach (var t in blocks)
+            Typography.SetNumeralAlignment(t, FontNumeralAlignment.Tabular);
+    }
+
     private static Color ParseColor(string hex)
     {
         hex = (hex ?? "#0A0A0A").Trim().TrimStart('#');
@@ -445,6 +452,7 @@ public sealed partial class MainWindow : Window
     private void Pill_PointerExited(object sender, PointerRoutedEventArgs e)
     {
         _hovering = false;
+        if (_menuOpen) return;
         ApplyClockStyle();
         ApplyPresentation();
     }
@@ -481,7 +489,7 @@ public sealed partial class MainWindow : Window
         AddEnum("Icons", _settings.IconSet, v => _settings.IconSet = v);
         AddEnum("Icon Pack", _settings.IconPack, v => _settings.IconPack = v);
         AddEnum("Temp", _settings.TempUnit, v => _settings.TempUnit = v);
-        AddEnum("Material", _settings.Material, v => _settings.Material = v);
+        // MaterialMode is unused for HWND (TransparentBackdrop only) — omit from menu.
         menu.Items.Add(new MenuFlyoutSeparator());
         var demo = new MenuFlyoutItem { Text = "Demo +1 unread" };
         demo.Click += (_, _) => { _settings.UnreadCount = Math.Min(99, _settings.UnreadCount + 1); ApplySettings(); };
@@ -489,6 +497,18 @@ public sealed partial class MainWindow : Window
         var clear = new MenuFlyoutItem { Text = "Clear unread" };
         clear.Click += (_, _) => { _settings.UnreadCount = 0; ApplySettings(); };
         menu.Items.Add(clear);
+
+        _menuOpen = true;
+        ApplyClockStyle();
+        ApplyPresentation();
+        void OnClosed(object? s, object ev)
+        {
+            menu.Closed -= OnClosed;
+            _menuOpen = false;
+            ApplyClockStyle();
+            ApplyPresentation();
+        }
+        menu.Closed += OnClosed;
         menu.ShowAt(Pill, e.GetPosition(Pill));
         e.Handled = true;
     }

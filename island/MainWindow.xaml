@@ -13,7 +13,8 @@
             BorderBrush="#FF9F0A"
             Background="Transparent"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="0,4,0,0"
             Opacity="0"
             IsHitTestVisible="False" />
         <Border
@@ -24,7 +25,8 @@
             BorderThickness="1"
             BorderBrush="#FF9F0A"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="0,4,0,0"
             PointerPressed="Pill_PointerPressed"
             PointerEntered="Pill_PointerEntered"
             PointerExited="Pill_PointerExited"
@@ -51,11 +53,13 @@
                         VerticalAlignment="Center"
                         HorizontalAlignment="Left"
                         Spacing="1">
+                        <!-- MinWidth 80: tabular Segoe UI Variable SemiBold 12pt HH:MM:SS; 64 was tight -->
                         <TextBlock
                             x:Name="ClockText"
                             FontFamily="Segoe UI Variable Display"
                             FontSize="12"
                             FontWeight="SemiBold"
+                            MinWidth="80"
                             Foreground="#F5F5F7"
                             Typography.NumeralAlignment="Tabular"
                             Text="00:00" />
@@ -105,8 +109,8 @@
                         <Ellipse x:Name="Dot" Width="8" Height="8" Fill="#FF9F0A" Visibility="Collapsed" />
                     </StackPanel>
                 </Grid>
-                <!-- Expanded regions inside the same Border (no hiding overlay) -->
-                <Grid x:Name="ExpandedRegion" Visibility="Collapsed">
+                <!-- Expanded extras stay in-tree; opacity morphs with Width/Height (clipped to pill). -->
+                <Grid x:Name="ExpandedRegion" Opacity="0" IsHitTestVisible="False">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
