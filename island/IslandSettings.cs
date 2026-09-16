@@ -37,6 +37,17 @@ public enum IconSet
     Thin    // I2 — ExtraLight / thinner glyph
 }
 
+/// <summary>Icon+digit pack; folder names under Assets/Packs/.</summary>
+public enum ThemePack
+{
+    Dark,
+    Light,
+    Colorful,
+    Mono,
+    Neon,
+    Pastel
+}
+
 public enum TempUnit
 {
     Celsius,
@@ -68,6 +79,7 @@ public sealed class IslandSettings
     public ClockStyle ClockStyle { get; set; } = ClockStyle.DigitalModern;
     public WeatherMode WeatherMode { get; set; } = WeatherMode.ExpandOnHover;
     public IconSet IconSet { get; set; } = IconSet.Fluent;
+    public ThemePack ThemePack { get; set; } = ThemePack.Dark;
     public TempUnit TempUnit { get; set; } = TempUnit.Celsius;
     public PresentationMode Presentation { get; set; } = PresentationMode.Compact;
 
