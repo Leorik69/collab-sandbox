@@ -83,14 +83,8 @@ def test_csproj_enable_msix_tooling() -> None:
         text,
     )
     assert re.search(r"<WindowsPackageType>\s*None\s*</WindowsPackageType>", text)
-
-
-def test_csproj_includes_app_pri_in_publish() -> None:
-    text = _read(CSPROJ)
-    assert "ResolvedFileToPublish" in text, (
-        "csproj must add the app PRI to ResolvedFileToPublish (WASDK #6720)"
-    )
-    assert "resources.pri" in text
+    # Extra <ResolvedFileToPublish> of the same PRI → NETSDK1152 on CI.
+    assert "<ResolvedFileToPublish" not in text
 
 
 def test_bat_prefers_publish_then_root() -> None:
@@ -135,7 +129,6 @@ def main() -> int:
         test_script_is_unpackaged_self_contained_win_x64,
         test_script_ensures_app_pri_before_zip,
         test_csproj_enable_msix_tooling,
-        test_csproj_includes_app_pri_in_publish,
         test_bat_prefers_publish_then_root,
         test_ps1_prefers_publish_then_root,
         test_workflow_requires_pri_and_wasdk,
