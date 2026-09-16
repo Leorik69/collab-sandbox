@@ -38,6 +38,10 @@ def main() -> int:
             fail("a: DwmEnableBlurBehindWindow required for per-pixel transparent host")
         if "ICompositionSupportsSystemBackdrop" not in backdrop and "ICompositionSupportsSystemBackdrop" not in cs:
             fail("a: ICompositionSupportsSystemBackdrop transparent brush required")
+        if "Windows.UI.Composition" not in backdrop and "WUC" not in backdrop:
+            fail("a: SystemBackdrop brush must be Windows.UI.Composition (CS0029 vs Microsoft.UI.Composition)")
+        if "ElementCompositionPreview" in backdrop:
+            fail("a: ElementCompositionPreview compositor is Microsoft.UI.Composition — CS0029")
     host = cs + "\n" + backdrop
     if "DWMWA_BORDER_COLOR" not in host and "34" not in host:
         fail("a: DWMWA_BORDER_COLOR must be set")

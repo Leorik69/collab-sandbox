@@ -352,7 +352,7 @@ public sealed partial class MainWindow : Window
         return a;
     }
 
-    private void Morph_Completed(object sender, object e)
+    private void Morph_Completed(object? sender, object e)
     {
         ExpandedRegion.IsHitTestVisible = ShowExpandedExtras();
     }
@@ -490,7 +490,7 @@ public sealed partial class MainWindow : Window
         _menuOpen = true;
         ApplyClockStyle();
         ApplyPresentation();
-        void OnClosed(object s, object ev)
+        void OnClosed(object? s, object ev)
         {
             menu.Closed -= OnClosed;
             _menuOpen = false;

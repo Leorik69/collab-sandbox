@@ -2,9 +2,9 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
+using WUC = Windows.UI.Composition;
 
 namespace NotifyIsland;
 
@@ -27,16 +27,18 @@ internal sealed class TransparentBackdrop : SystemBackdrop
     private SubclassProc? _proc;
     private IntPtr _hwnd;
     private IntPtr _blackBrush;
+    private WUC.Compositor? _wuc;
+    private WUC.CompositionColorBrush? _tint;
 
     private delegate IntPtr SubclassProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam, UIntPtr uIdSubclass, UIntPtr dwRefData);
 
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop connectedTarget, XamlRoot xamlRoot)
     {
-        if (xamlRoot.Content is UIElement el)
-        {
-            var compositor = ElementCompositionPreview.GetElementVisual(el).Compositor;
-            connectedTarget.SystemBackdrop = compositor.CreateColorBrush(Color.FromArgb(0, 0, 0, 0));
-        }
+        // ICompositionSupportsSystemBackdrop.SystemBackdrop is Windows.UI.Composition
+        // (Microsoft.UI.Composition.Compositor.CreateColorBrush is CS0029).
+        _wuc ??= new WUC.Compositor();
+        _tint = _wuc.CreateColorBrush(Color.FromArgb(0, 0, 0, 0));
+        connectedTarget.SystemBackdrop = _tint;
 
         var hwnd = (IntPtr)(long)(xamlRoot.ContentIslandEnvironment?.AppWindowId.Value ?? 0);
         if (hwnd != IntPtr.Zero)
@@ -56,6 +58,8 @@ internal sealed class TransparentBackdrop : SystemBackdrop
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop disconnectedTarget)
     {
         disconnectedTarget.SystemBackdrop = null;
+        _tint?.Dispose();
+        _tint = null;
         Unhook();
         if (_blackBrush != IntPtr.Zero)
         {
