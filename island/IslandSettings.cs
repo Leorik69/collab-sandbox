@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Windows.Storage;
 
 namespace NotifyIsland;
@@ -37,6 +38,17 @@ public enum IconSet
     Thin    // I2 — ExtraLight / thinner glyph
 }
 
+/// <summary>PNG theme under Assets/Packs/&lt;id&gt;. Separate from IconSet (Fluent/Thin).</summary>
+public enum IconPack
+{
+    Light,
+    Dark,
+    Colorful,
+    Mono,
+    Neon,
+    Pastel
+}
+
 public enum TempUnit
 {
     Celsius,
@@ -68,6 +80,8 @@ public sealed class IslandSettings
     public ClockStyle ClockStyle { get; set; } = ClockStyle.DigitalModern;
     public WeatherMode WeatherMode { get; set; } = WeatherMode.ExpandOnHover;
     public IconSet IconSet { get; set; } = IconSet.Fluent;
+    [JsonConverter(typeof(IconPackJsonConverter))]
+    public IconPack IconPack { get; set; } = IconPack.Dark;
     public TempUnit TempUnit { get; set; } = TempUnit.Celsius;
     public PresentationMode Presentation { get; set; } = PresentationMode.Compact;
 

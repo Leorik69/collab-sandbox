@@ -14,7 +14,7 @@ Ref: [Packt Dynamic Island](https://github.com/PacktPublishing/Mastering-WidgetK
 - Keyline / glow / progress / badge accent **`#FF9F0A`** (CC: FocusTimer-demo orange, not `#0A84FF`).
 - `PresentationMode`: Compact | Expanded | Minimal. Hover Compact→Expanded and `HH:MM:SS` in expanded = WinUI additions.
 - Fluent instead of SF Symbols. Pulse = scale + opacity, unread only. No idle blue dot.
-- RMB: Presentation + existing clock/weather/icons. LMB → Win+N (unchanged).
+- RMB: Presentation + existing clock/weather/icons + **Icon Pack** (light / dark / colorful / mono / neon / pastel). Pack switch applies PNG glyphs, clock digits (`Assets/Packs/clock-styles.md`), and pill background immediately — no restart. Default `dark`.
 
 ## Portable (без сборки из исходников)
 

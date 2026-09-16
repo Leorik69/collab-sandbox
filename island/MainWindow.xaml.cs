@@ -1,12 +1,16 @@
 using System;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.UI;
+using Microsoft.UI.Text;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics;
 using Windows.UI;
 using WinRT.Interop;
@@ -41,6 +45,7 @@ public sealed partial class MainWindow : Window
     private double _placeW, _placeH;
     private int _morphGen;
     private int _placeWhenGen;
+    private ThemeShadow? _clockNeonShadow;
 
     public MainWindow()
     {
@@ -136,6 +141,10 @@ public sealed partial class MainWindow : Window
             var light = Application.Current.RequestedTheme == ApplicationTheme.Light;
             _settings.BackgroundHex = light ? "#F5F5F7" : "#0A0A0A";
         }
+        else
+        {
+            _settings.BackgroundHex = IconPackTheme.PillBackgroundHex(_settings.IconPack);
+        }
 
         var bg = ParseColor(_settings.BackgroundHex);
         var accent = ParseColor("#FF9F0A"); // CC: paint orange keyline; do not rewrite LocalSettings
@@ -161,9 +170,12 @@ public sealed partial class MainWindow : Window
         var filled = _settings.UnreadCount > 0 || _settings.DoNotDisturb;
         StateIcon.Glyph = _settings.DoNotDisturb ? "\uE708" : "\uEA8F";
         StateIcon.FontWeight = _settings.IconSet == IconSet.Thin
-            ? Microsoft.UI.Text.FontWeights.ExtraLight
-            : Microsoft.UI.Text.FontWeights.Normal;
+            ? FontWeights.ExtraLight
+            : FontWeights.Normal;
         StateIcon.Foreground = filled ? keyline : new SolidColorBrush(Color.FromArgb(255, 245, 245, 247));
+        WeatherGlyph.Visibility = WeatherGlyphExp.Visibility = StateIcon.Visibility = Visibility.Collapsed;
+        SetPackImage(StateIconImage, IconPackTheme.StatusUri(
+            _settings.IconPack, _settings.DoNotDisturb, _settings.UnreadCount > 0));
 
         Dot.Visibility = Visibility.Collapsed;
         var activity = _settings.UnreadCount > 0 && !_settings.DoNotDisturb;
@@ -196,25 +208,85 @@ public sealed partial class MainWindow : Window
 
     private void ApplyClockStyle()
     {
+        ApplyPackClockLook();
         var now = DateTime.Now;
         MinuteArc.Visibility = _settings.ClockStyle == ClockStyle.SecondsMinuteArc ? Visibility.Visible : Visibility.Collapsed;
-        ClockText.FontWeight = _settings.ClockStyle == ClockStyle.DigitalMinimal
-            ? Microsoft.UI.Text.FontWeights.ExtraLight
-            : Microsoft.UI.Text.FontWeights.SemiBold;
-        ClockText.Foreground = new SolidColorBrush(_settings.ClockStyle == ClockStyle.DigitalMinimal
-            ? Color.FromArgb(255, 160, 160, 168)
-            : Color.FromArgb(255, 245, 245, 247));
         // HH:MM:SS in expanded = WinUI addition (not Packt Live Widget).
         if (_settings.ClockStyle == ClockStyle.SecondsMinuteArc || IsExpanded())
         {
-            ClockText.Text = now.ToString("HH:mm:ss");
+            SetClockParts(now.ToString("HH"), ":", now.ToString("mm"), ":", now.ToString("ss"));
             if (_settings.ClockStyle == ClockStyle.SecondsMinuteArc) MinuteArc.Value = now.Second;
         }
         else
         {
             var sep = _settings.ClockStyle == ClockStyle.DigitalModern && !_colonOn ? " " : ":";
-            ClockText.Text = $"{now:HH}{sep}{now:mm}";
+            SetClockParts(now.ToString("HH"), sep, now.ToString("mm"));
         }
+    }
+
+    private void ApplyPackClockLook()
+    {
+        var look = IconPackTheme.Clock(_settings.IconPack);
+        ClockText.FontFamily = new FontFamily(look.FontFamily);
+        ClockText.FontSize = 12;
+        ClockText.FontWeight = look.FontWeight switch
+        {
+            "Bold" => FontWeights.Bold,
+            "Normal" => FontWeights.Normal,
+            "SemiLight" => FontWeights.SemiLight,
+            _ => FontWeights.SemiBold
+        };
+        ClockText.Foreground = new SolidColorBrush(ParseColor(look.ForegroundHex));
+        ClockText.CharacterSpacing = look.CharacterSpacing;
+        Typography.SetNumeralAlignment(ClockText,
+            look.TabularNums ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
+
+        if (look.NeonShadow)
+        {
+            try
+            {
+                _clockNeonShadow ??= new ThemeShadow();
+                if (_clockNeonShadow.Receivers.Count == 0)
+                    _clockNeonShadow.Receivers.Add(GlowBorder);
+                ClockText.Shadow = _clockNeonShadow;
+                ClockText.Translation = new Vector3(0, 0, 8);
+            }
+            catch
+            {
+                ClockText.Shadow = null;
+            }
+        }
+        else
+        {
+            ClockText.Shadow = null;
+            ClockText.Translation = Vector3.Zero;
+        }
+    }
+
+    private void SetClockParts(string left, string sep, string mid, string? sep2 = null, string? right = null)
+    {
+        var look = IconPackTheme.Clock(_settings.IconPack);
+        if (!look.AmberColon)
+        {
+            ClockText.Text = sep2 is null ? left + sep + mid : left + sep + mid + sep2 + right;
+            return;
+        }
+
+        var amber = new SolidColorBrush(ParseColor(IconPackTheme.KeylineHex));
+        ClockText.Inlines.Clear();
+        ClockText.Inlines.Add(new Run { Text = left });
+        ClockText.Inlines.Add(AmberRun(sep, amber));
+        ClockText.Inlines.Add(new Run { Text = mid });
+        if (sep2 is null) return;
+        ClockText.Inlines.Add(AmberRun(sep2, amber));
+        ClockText.Inlines.Add(new Run { Text = right ?? "" });
+    }
+
+    private static Run AmberRun(string sep, Brush amber)
+    {
+        var run = new Run { Text = sep };
+        if (sep == ":") run.Foreground = amber;
+        return run;
     }
 
     private void TickClock()
@@ -229,6 +301,15 @@ public sealed partial class MainWindow : Window
         string Unit(int t) => _settings.TempUnit == TempUnit.Fahrenheit ? $"{t * 9 / 5 + 32}°F" : $"{t}°";
         WeatherTemp.Text = Unit(c);
         WeatherGlyph.Glyph = WeatherGlyphExp.Glyph = "\uE706";
+        var pack = _settings.IconPack;
+        SetPackImage(WeatherGlyphImage, IconPackTheme.WeatherUri(pack, "sun"));
+        SetPackImage(WeatherGlyphExpImage, IconPackTheme.WeatherUri(pack, "sun"));
+        var content = new SolidColorBrush(ParseColor(IconPackTheme.ContentForegroundHex(pack)));
+        WeatherTemp.Foreground = content;
+        WeatherDesc.Foreground = content;
+        var muted = new SolidColorBrush(ParseColor(IconPackTheme.MutedForegroundHex(pack)));
+        WeatherFeels.Foreground = muted;
+        WeatherRange.Foreground = muted;
         WeatherDesc.Text = "Clear";
         WeatherFeels.Text = "feels " + Unit(feels);
         WeatherRange.Text = Unit(min) + " / " + Unit(max);
@@ -328,6 +409,13 @@ public sealed partial class MainWindow : Window
         _pulse.Children.Add(glow);
     }
 
+    private static void SetPackImage(Image image, string uri)
+    {
+        if (image.Source is BitmapImage existing && existing.UriSource?.OriginalString == uri)
+            return;
+        image.Source = new BitmapImage(new Uri(uri));
+    }
+
     private static Color ParseColor(string hex)
     {
         hex = (hex ?? "#0A0A0A").Trim().TrimStart('#');
@@ -391,6 +479,7 @@ public sealed partial class MainWindow : Window
         AddEnum("Clock", _settings.ClockStyle, v => _settings.ClockStyle = v);
         AddEnum("Weather", _settings.WeatherMode, v => _settings.WeatherMode = v);
         AddEnum("Icons", _settings.IconSet, v => _settings.IconSet = v);
+        AddEnum("Icon Pack", _settings.IconPack, v => _settings.IconPack = v);
         AddEnum("Temp", _settings.TempUnit, v => _settings.TempUnit = v);
         AddEnum("Material", _settings.Material, v => _settings.Material = v);
         menu.Items.Add(new MenuFlyoutSeparator());
