@@ -43,28 +43,36 @@ public enum TempUnit
     Fahrenheit
 }
 
+/// <summary>DI-like presentation (system model; not copied from missing Packt Live Widget sources).</summary>
+public enum PresentationMode
+{
+    Compact,
+    Expanded,
+    Minimal
+}
+
 public sealed class IslandSettings
 {
     public double CornerRadius { get; set; } = 16;
-    public double Opacity { get; set; } = 0.85;
-    public MaterialMode Material { get; set; } = MaterialMode.Acrylic;
+    public double Opacity { get; set; } = 1.0;
+    public MaterialMode Material { get; set; } = MaterialMode.Solid;
     public IslandShape Shape { get; set; } = IslandShape.Capsule;
-    public string BackgroundHex { get; set; } = "#1C1C1E";
-    public string BorderHex { get; set; } = "#33FFFFFF";
-    public string AccentHex { get; set; } = "#0A84FF";
-    public bool FollowSystemTheme { get; set; } = true;
+    public string BackgroundHex { get; set; } = "#0A0A0A";
+    public string BorderHex { get; set; } = "#FF9F0A";
+    public string AccentHex { get; set; } = "#FF9F0A"; // CC: FocusTimer-demo orange, not #0A84FF
+    public bool FollowSystemTheme { get; set; } = false;
     public bool DoNotDisturb { get; set; } = false;
     public int UnreadCount { get; set; } = 0;
-    public bool PulseAura { get; set; } = true;      // E2 on
-    public bool BorderGlow { get; set; } = false;    // E1 off
-    public ClockStyle ClockStyle { get; set; } = ClockStyle.DigitalModern; // C1
-    public WeatherMode WeatherMode { get; set; } = WeatherMode.Compact;    // W1
-    public IconSet IconSet { get; set; } = IconSet.Fluent;                 // I1
+    public bool PulseAura { get; set; } = true;
+    public bool BorderGlow { get; set; } = false;
+    public ClockStyle ClockStyle { get; set; } = ClockStyle.DigitalModern;
+    public WeatherMode WeatherMode { get; set; } = WeatherMode.ExpandOnHover;
+    public IconSet IconSet { get; set; } = IconSet.Fluent;
     public TempUnit TempUnit { get; set; } = TempUnit.Celsius;
-    public int Width { get; set; } = 240;
-    public int Height { get; set; } = 40;
+    public PresentationMode Presentation { get; set; } = PresentationMode.Compact;
+    public int Width { get; set; } = 280;
+    public int Height { get; set; } = 68;
 
-    // Back-compat alias for older persisted JSON
     public bool PulseOnUnread
     {
         get => PulseAura;
