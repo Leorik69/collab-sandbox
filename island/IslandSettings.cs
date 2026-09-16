@@ -67,6 +67,20 @@ public enum PresentationMode
     Minimal
 }
 
+public enum GlowMode
+{
+    Off,
+    Island,
+    Clock
+}
+
+public enum NotifyAnimation
+{
+    Morph,
+    Pulse,
+    GlowBreathe
+}
+
 public sealed class IslandSettings
 {
     public double CornerRadius { get; set; } = 16;
@@ -89,6 +103,13 @@ public sealed class IslandSettings
     public IconPack IconPack { get; set; } = IconPack.Dark;
     public TempUnit TempUnit { get; set; } = TempUnit.Celsius;
     public PresentationMode Presentation { get; set; } = PresentationMode.Compact;
+    public string TextHex { get; set; } = "#F5F5F7";
+    public string GlowHex { get; set; } = "#FF9F0A";
+    public GlowMode Glow { get; set; } = GlowMode.Island;
+    public double GlowStrength { get; set; } = 0.7;
+    public double BorderThickness { get; set; } = 1;
+    public NotifyAnimation NotifyAnim { get; set; } = NotifyAnimation.Morph;
+    public bool SettingsWindowDark { get; set; } = true;
 
     public bool PulseOnUnread
     {

@@ -32,7 +32,7 @@ public sealed partial class MainWindow : Window
     private const int MorphMs = 280;
     private const int PadW = 32, PadH = 16;
 
-    private IslandSettings _settings = IslandSettings.Load();
+    private IslandSettings _settings => App.Settings;
     private Storyboard? _pulse;
     private Storyboard? _morph;
     private DoubleAnimation? _morphW;
@@ -45,6 +45,7 @@ public sealed partial class MainWindow : Window
     private bool _menuOpen;
     private SolidColorBrush? _keylineBrush;
     private Color _keylineCached;
+    private Storyboard? _breathe;
     private ThemeShadow? _clockNeonShadow;
     private RectangleGeometry? _pillClip;
 
@@ -55,6 +56,7 @@ public sealed partial class MainWindow : Window
         SetupOverlay();
         BuildPulse();
         BuildMorph();
+        BuildBreathe();
         ApplySettings();
         _clock.Tick += (_, _) => TickClock();
         _clock.Start();
@@ -159,30 +161,34 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void ApplySettings()
+    public void ApplySettings()
     {
         if (_settings.FollowSystemTheme)
         {
             var light = Application.Current.RequestedTheme == ApplicationTheme.Light;
             _settings.BackgroundHex = light ? "#F5F5F7" : "#0A0A0A";
         }
-        else
-        {
-            _settings.BackgroundHex = IconPackTheme.PillBackgroundHex(_settings.IconPack);
-        }
 
         var bg = ParseColor(_settings.BackgroundHex);
-        var accent = ParseColor("#FF9F0A"); // CC: paint orange keyline; do not rewrite LocalSettings
+        var accent = ParseColor(_settings.AccentHex);
+        var border = ParseColor(_settings.BorderHex);
+        var glow = ParseColor(_settings.GlowHex);
+        var text = ParseColor(_settings.TextHex);
         var a = (byte)(255 * Math.Clamp(_settings.Opacity, 0.2, 1.0));
         // Host stays TransparentBackdrop. Ignore MaterialMode — Mica/Acrylic on the HWND
         // would recreate the rectangular frame (bug a). Enum kept for LocalSettings JSON.
 
         Pill.Background = new SolidColorBrush(Color.FromArgb(a, bg.R, bg.G, bg.B));
-        var keyline = KeylineBrush(accent);
+        var activityPreview = _settings.UnreadCount > 0 && !_settings.DoNotDisturb;
+        var thick = activityPreview ? Math.Clamp(_settings.BorderThickness, 0, 4) : 0;
+        Pill.BorderThickness = new Thickness(thick);
+        var keyline = KeylineBrush(border);
         Pill.BorderBrush = keyline;
-        GlowBorder.BorderBrush = keyline;
-        MinuteArc.Foreground = keyline;
-        Badge.Background = keyline;
+        GlowBorder.BorderBrush = KeylineBrush(glow);
+        MinuteArc.Foreground = KeylineBrush(accent);
+        Badge.Background = KeylineBrush(accent);
+        ClockText.Foreground = new SolidColorBrush(text);
+        WeatherTemp.Foreground = WeatherDesc.Foreground = new SolidColorBrush(text);
 
         var filled = _settings.UnreadCount > 0 || _settings.DoNotDisturb;
         StateIcon.Glyph = _settings.DoNotDisturb ? "\uE708" : "\uEA8F";
@@ -200,14 +206,23 @@ public sealed partial class MainWindow : Window
         if (activity)
         {
             BadgeText.Text = _settings.UnreadCount > 9 ? "9+" : _settings.UnreadCount.ToString();
-            if (_settings.PulseAura) _pulse?.Begin();
+            var reduce = ReduceMotion();
+            if (!reduce && _settings.NotifyAnim == NotifyAnimation.Pulse && _settings.PulseAura) _pulse?.Begin();
             else StopPulse();
+            if (!reduce && _settings.NotifyAnim == NotifyAnimation.GlowBreathe)
+            {
+                BuildBreathe();
+                _breathe?.Begin();
+            }
+            else _breathe?.Stop();
         }
         else
         {
             StopPulse();
+            _breathe?.Stop();
         }
-        GlowBorder.Opacity = _settings.BorderGlow || (activity && _settings.PulseAura) ? 0.85 : 0;
+        ApplyGlow(activity);
+        PaintAppIcons();
 
         ApplyClockStyle();
         ApplyWeather();
@@ -220,7 +235,7 @@ public sealed partial class MainWindow : Window
         _pulse?.Stop();
         PillScale.ScaleX = PillScale.ScaleY = 1;
         Pill.Opacity = 1;
-        if (!_settings.BorderGlow) GlowBorder.Opacity = 0;
+        if (!_settings.BorderGlow && _settings.Glow == GlowMode.Off) GlowBorder.Opacity = 0;
     }
 
     private void ApplyClockStyle()
@@ -254,12 +269,13 @@ public sealed partial class MainWindow : Window
             "SemiLight" => FontWeights.SemiLight,
             _ => FontWeights.SemiBold
         };
-        ClockText.Foreground = new SolidColorBrush(ParseColor(look.ForegroundHex));
+        ClockText.Foreground = new SolidColorBrush(ParseColor(_settings.TextHex));
         ClockText.CharacterSpacing = look.CharacterSpacing;
         Typography.SetNumeralAlignment(ClockText,
             look.TabularNums ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
 
-        if (look.NeonShadow)
+        var clockGlow = _settings.Glow == GlowMode.Clock;
+        if (clockGlow || look.NeonShadow)
         {
             try
             {
@@ -267,7 +283,8 @@ public sealed partial class MainWindow : Window
                 if (_clockNeonShadow.Receivers.Count == 0)
                     _clockNeonShadow.Receivers.Add(GlowBorder);
                 ClockText.Shadow = _clockNeonShadow;
-                ClockText.Translation = new Vector3(0, 0, 8);
+                var z = clockGlow ? 16f * (float)_settings.GlowStrength : 8f;
+                ClockText.Translation = new Vector3(0, 0, z);
             }
             catch
             {
@@ -410,6 +427,77 @@ public sealed partial class MainWindow : Window
         _pulse.Children.Add(glow);
     }
 
+    private void BuildBreathe()
+    {
+        _breathe?.Stop();
+        _breathe = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
+        var d = TimeSpan.FromMilliseconds(900);
+        var ease = new SineEase { EasingMode = EasingMode.EaseInOut };
+        var to = Math.Clamp(_settings.GlowStrength, 0.35, 1);
+        var a = new DoubleAnimation
+        {
+            From = 0.12,
+            To = to,
+            Duration = d,
+            AutoReverse = true,
+            EasingFunction = ease
+        };
+        Storyboard.SetTarget(a, GlowBorder);
+        Storyboard.SetTargetProperty(a, "Opacity");
+        _breathe.Children.Add(a);
+    }
+
+    private void ApplyGlow(bool activity)
+    {
+        if (_settings.Glow == GlowMode.Off || ReduceMotion())
+        {
+            if (_settings.NotifyAnim != NotifyAnimation.Pulse || !activity)
+                GlowBorder.Opacity = 0;
+            return;
+        }
+        if (_settings.Glow == GlowMode.Clock)
+        {
+            GlowBorder.Opacity = 0;
+            return;
+        }
+        var s = Math.Clamp(_settings.GlowStrength, 0, 1);
+        GlowBorder.Opacity = activity ? Math.Max(0.2, s) : s * 0.22;
+    }
+
+    private void PaintAppIcons()
+    {
+        AppIcons.Children.Clear();
+        foreach (var (app, count) in AppNotificationHub.Snapshot())
+        {
+            var chip = new Border
+            {
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(6, 1, 6, 1),
+                Background = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255))
+            };
+            chip.Child = new TextBlock
+            {
+                Text = $"{app} {count}",
+                FontSize = 10,
+                Foreground = ClockText.Foreground
+            };
+            AppIcons.Children.Add(chip);
+        }
+        AppIcons.Visibility = AppIcons.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static bool ReduceMotion()
+    {
+        try
+        {
+            return !new Windows.UI.ViewManagement.UISettings().AnimationsEnabled;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static void SetPackImage(Image image, string uri)
     {
         if (image.Source is BitmapImage existing && existing.UriSource?.OriginalString == uri)
@@ -460,43 +548,16 @@ public sealed partial class MainWindow : Window
     private void Pill_RightTapped(object sender, RightTappedRoutedEventArgs e)
     {
         var menu = new MenuFlyout();
-        void AddEnum<T>(string title, T current, Action<T> set) where T : struct, Enum
-        {
-            var sub = new MenuFlyoutSubItem { Text = title };
-            foreach (T v in Enum.GetValues<T>())
-            {
-                var item = new MenuFlyoutItem { Text = v.ToString() };
-                var cap = v;
-                item.Click += (_, _) => { set(cap); ApplySettings(); };
-                sub.Items.Add(item);
-            }
-            menu.Items.Add(sub);
-        }
-
-        var dnd = new ToggleMenuFlyoutItem { Text = "DND", IsChecked = _settings.DoNotDisturb };
-        dnd.Click += (_, _) => { _settings.DoNotDisturb = dnd.IsChecked; ApplySettings(); };
-        menu.Items.Add(dnd);
-        var glow = new ToggleMenuFlyoutItem { Text = "Border Glow", IsChecked = _settings.BorderGlow };
-        glow.Click += (_, _) => { _settings.BorderGlow = glow.IsChecked; ApplySettings(); };
-        menu.Items.Add(glow);
-        var pulse = new ToggleMenuFlyoutItem { Text = "Pulse Aura", IsChecked = _settings.PulseAura };
-        pulse.Click += (_, _) => { _settings.PulseAura = pulse.IsChecked; ApplySettings(); };
-        menu.Items.Add(pulse);
+        var open = new MenuFlyoutItem { Text = "Настройки" };
+        open.Click += (_, _) => (Application.Current as App)?.OpenSettings();
+        menu.Items.Add(open);
+        var winN = new MenuFlyoutItem { Text = "Win+N" };
+        winN.Click += (_, _) => OpenNotificationCenter();
+        menu.Items.Add(winN);
         menu.Items.Add(new MenuFlyoutSeparator());
-        AddEnum("Presentation", _settings.Presentation, v => _settings.Presentation = v);
-        AddEnum("Clock", _settings.ClockStyle, v => _settings.ClockStyle = v);
-        AddEnum("Weather", _settings.WeatherMode, v => _settings.WeatherMode = v);
-        AddEnum("Icons", _settings.IconSet, v => _settings.IconSet = v);
-        AddEnum("Icon Pack", _settings.IconPack, v => _settings.IconPack = v);
-        AddEnum("Temp", _settings.TempUnit, v => _settings.TempUnit = v);
-        // MaterialMode is unused for HWND (TransparentBackdrop only) — omit from menu.
-        menu.Items.Add(new MenuFlyoutSeparator());
-        var demo = new MenuFlyoutItem { Text = "Demo +1 unread" };
-        demo.Click += (_, _) => { _settings.UnreadCount = Math.Min(99, _settings.UnreadCount + 1); ApplySettings(); };
-        menu.Items.Add(demo);
-        var clear = new MenuFlyoutItem { Text = "Clear unread" };
-        clear.Click += (_, _) => { _settings.UnreadCount = 0; ApplySettings(); };
-        menu.Items.Add(clear);
+        var exit = new MenuFlyoutItem { Text = "Выход" };
+        exit.Click += (_, _) => Environment.Exit(0);
+        menu.Items.Add(exit);
 
         _menuOpen = true;
         ApplyClockStyle();
