@@ -34,15 +34,18 @@ internal sealed class TransparentBackdrop : SystemBackdrop
 
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop connectedTarget, XamlRoot xamlRoot)
     {
-        // ICompositionSupportsSystemBackdrop.SystemBackdrop is Windows.UI.Composition
-        // (Microsoft.UI.Composition.Compositor.CreateColorBrush is CS0029).
-        _wuc ??= new WUC.Compositor();
-        _tint = _wuc.CreateColorBrush(Color.FromArgb(0, 0, 0, 0));
-        connectedTarget.SystemBackdrop = _tint;
-
-        // HWND chrome + subclass: AttachHwnd (Win32 handle from WindowNative).
-        // AppWindowId.Value is not an HWND — do not cast it.
-        base.OnTargetConnected(connectedTarget, xamlRoot);
+        // Do not `new Windows.UI.Composition.Compositor()` on the WinUI thread:
+        // that ctor needs Windows.System.DispatcherQueue and returns E_INVALIDARG
+        // (WER 80070057) → APPCRASH 0xc000027b in Microsoft.UI.Xaml.dll.
+        // HWND transparency is owned by AttachHwnd / DWM, not this brush.
+        try
+        {
+            base.OnTargetConnected(connectedTarget, xamlRoot);
+        }
+        catch
+        {
+            // keep DWM path even if SystemBackdrop wiring fails
+        }
     }
 
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop disconnectedTarget)
