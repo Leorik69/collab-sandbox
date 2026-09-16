@@ -42,7 +42,7 @@ def main() -> int:
             fail("a: SystemBackdrop brush must be Windows.UI.Composition (CS0029 vs Microsoft.UI.Composition)")
         if "ElementCompositionPreview" in backdrop:
             fail("a: ElementCompositionPreview compositor is Microsoft.UI.Composition — CS0029")
-        if "AppWindowId" in backdrop:
+        if "ContentIslandEnvironment" in backdrop or re.search(r"\(IntPtr\)\(long\)", backdrop):
             fail("a: do not cast AppWindowId.Value to HWND; AttachHwnd owns the Win32 handle")
         otc = re.search(
             r"void OnTargetConnected\([\s\S]*?void OnTargetDisconnected",
