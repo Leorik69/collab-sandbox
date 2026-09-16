@@ -1,4 +1,4 @@
-# Publish portable self-contained build (Windows, unpackaged WinUI3, win-x64)
+﻿# Publish portable self-contained build (Windows, unpackaged WinUI3, win-x64)
 # Usage: powershell -ExecutionPolicy Bypass -File tools\Publish-Portable.ps1 [-Zip]
 # Prefer VS MSBuild: `dotnet publish` hits MSB4062 ExpandPriContent (Appx tasks missing from SDK).
 param([switch]$Zip = $true)
@@ -34,6 +34,19 @@ if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
   /p:GenerateAppxPackageOnBuild=false `
   /p:PublishDir="$publishDir\"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Zip root is publish\* (same folder as NotifyIsland.exe). Copy launcher so unpack is one-click.
+$launcherDst = Join-Path $publishDir 'Запустить.bat'
+$launcherSrc = Join-Path $root 'Запустить.bat'
+if (Test-Path -LiteralPath $launcherSrc) {
+  Copy-Item -LiteralPath $launcherSrc -Destination $launcherDst -Force
+} else {
+  @(
+    '@echo off'
+    'cd /d "%~dp0"'
+    'start "" "%~dp0NotifyIsland.exe"'
+  ) | Set-Content -LiteralPath $launcherDst -Encoding Ascii
+}
 
 if ($Zip) {
   $zipPath = Join-Path $root 'NotifyIsland-portable-win-x64.zip'
