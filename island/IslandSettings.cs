@@ -70,8 +70,6 @@ public sealed class IslandSettings
     public IconSet IconSet { get; set; } = IconSet.Fluent;
     public TempUnit TempUnit { get; set; } = TempUnit.Celsius;
     public PresentationMode Presentation { get; set; } = PresentationMode.Compact;
-    public int Width { get; set; } = 280;
-    public int Height { get; set; } = 68;
 
     public bool PulseOnUnread
     {

@@ -30,10 +30,17 @@ public sealed partial class MainWindow : Window
     private IslandSettings _settings = IslandSettings.Load();
     private Storyboard? _pulse;
     private Storyboard? _morph;
+    private DoubleAnimation? _morphW;
+    private DoubleAnimation? _morphH;
     private AppWindow? _appWindow;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private bool _colonOn = true;
     private bool _hovering;
+    private SolidColorBrush? _keylineBrush;
+    private Color _keylineCached;
+    private double _placeW, _placeH;
+    private int _morphGen;
+    private int _placeWhenGen;
 
     public MainWindow()
     {
@@ -41,6 +48,7 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetupOverlay();
         BuildPulse();
+        BuildMorph();
         ApplySettings();
         _clock.Tick += (_, _) => TickClock();
         _clock.Start();
@@ -86,12 +94,18 @@ public sealed partial class MainWindow : Window
         SyncChrome();
     }
 
+    private static (int w, int h) WindowPixelSize(double pillW, double pillH)
+    {
+        var w = (int)Math.Clamp(Math.Round(pillW) + PadW, 140, 360);
+        var h = (int)Math.Clamp(Math.Round(pillH) + PadH, 40, 88);
+        return (w, h);
+    }
+
     private void PlaceWindow(double pillW, double pillH)
     {
         if (_appWindow is null) return;
         var wa = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
-        var w = (int)Math.Clamp(Math.Round(pillW) + PadW, 140, 360);
-        var h = (int)Math.Clamp(Math.Round(pillH) + PadH, 40, 88);
+        var (w, h) = WindowPixelSize(pillW, pillH);
         _appWindow.MoveAndResize(new RectInt32(wa.X + (wa.Width - w) / 2, wa.Y + 6, w, h));
     }
 
@@ -138,7 +152,7 @@ public sealed partial class MainWindow : Window
         catch { SystemBackdrop = null; }
 
         Pill.Background = new SolidColorBrush(Color.FromArgb(a, bg.R, bg.G, bg.B));
-        var keyline = new SolidColorBrush(accent);
+        var keyline = KeylineBrush(accent);
         Pill.BorderBrush = keyline;
         GlowBorder.BorderBrush = keyline;
         MinuteArc.Foreground = keyline;
@@ -149,7 +163,7 @@ public sealed partial class MainWindow : Window
         StateIcon.FontWeight = _settings.IconSet == IconSet.Thin
             ? Microsoft.UI.Text.FontWeights.ExtraLight
             : Microsoft.UI.Text.FontWeights.Normal;
-        StateIcon.Foreground = new SolidColorBrush(filled ? accent : Color.FromArgb(255, 245, 245, 247));
+        StateIcon.Foreground = filled ? keyline : new SolidColorBrush(Color.FromArgb(255, 245, 245, 247));
 
         Dot.Visibility = Visibility.Collapsed;
         var activity = _settings.UnreadCount > 0 && !_settings.DoNotDisturb;
@@ -231,25 +245,64 @@ public sealed partial class MainWindow : Window
         MorphTo();
     }
 
-    private void MorphTo()
+    private void BuildMorph()
     {
-        var (w, h) = PillSize();
-        _morph?.Stop();
         _morph = new Storyboard();
         var duration = new Duration(TimeSpan.FromMilliseconds(MorphMs));
         var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
-        void Add(string prop, double to)
+        _morphW = MorphAnim("Width", duration, ease);
+        _morphH = MorphAnim("Height", duration, ease);
+        _morph.Children.Add(_morphW);
+        _morph.Children.Add(_morphH);
+        _morph.Completed += Morph_Completed;
+    }
+
+    private DoubleAnimation MorphAnim(string prop, Duration duration, EasingFunctionBase ease)
+    {
+        var a = new DoubleAnimation { Duration = duration, EasingFunction = ease };
+        Storyboard.SetTarget(a, Pill);
+        Storyboard.SetTargetProperty(a, prop);
+        return a;
+    }
+
+    private void Morph_Completed(object sender, object e)
+    {
+        if (_placeWhenGen != _morphGen) return;
+        _placeWhenGen = 0;
+        PlaceWindow(_placeW, _placeH);
+    }
+
+    private void MorphTo()
+    {
+        var (w, h) = PillSize();
+        _morphW!.To = w;
+        _morphH!.To = h;
+        _placeW = w;
+        _placeH = h;
+        var gen = ++_morphGen;
+
+        var (tw, th) = WindowPixelSize(w, h);
+        var cur = _appWindow?.Size ?? default;
+        var grow = _appWindow is null || tw > cur.Width || th > cur.Height;
+        if (grow)
         {
-            var a = new DoubleAnimation { To = to, Duration = duration, EasingFunction = ease };
-            Storyboard.SetTarget(a, Pill);
-            Storyboard.SetTargetProperty(a, prop);
-            _morph.Children.Add(a);
+            _placeWhenGen = 0;
+            PlaceWindow(w, h);
         }
-        Add("Width", w);
-        Add("Height", h);
-        _morph.Completed += (_, _) => PlaceWindow(w, h);
-        _morph.Begin();
-        PlaceWindow(w, h);
+        else
+            _placeWhenGen = gen;
+
+        _morph!.Begin();
+    }
+
+    private SolidColorBrush KeylineBrush(Color accent)
+    {
+        if (_keylineBrush is null || _keylineCached != accent)
+        {
+            _keylineBrush = new SolidColorBrush(accent);
+            _keylineCached = accent;
+        }
+        return _keylineBrush;
     }
 
     private void BuildPulse()
