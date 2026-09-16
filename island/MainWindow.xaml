@@ -53,12 +53,13 @@
                         VerticalAlignment="Center"
                         HorizontalAlignment="Left"
                         Spacing="1">
+                        <!-- MinWidth 80: tabular Segoe UI Variable SemiBold 12pt HH:MM:SS; 64 was tight -->
                         <TextBlock
                             x:Name="ClockText"
                             FontFamily="Segoe UI Variable Display"
                             FontSize="12"
                             FontWeight="SemiBold"
-                            MinWidth="64"
+                            MinWidth="80"
                             Foreground="#F5F5F7"
                             Typography.NumeralAlignment="Tabular"
                             Text="00:00" />

@@ -42,6 +42,25 @@ def main() -> int:
             fail("a: SystemBackdrop brush must be Windows.UI.Composition (CS0029 vs Microsoft.UI.Composition)")
         if "ElementCompositionPreview" in backdrop:
             fail("a: ElementCompositionPreview compositor is Microsoft.UI.Composition — CS0029")
+        if "AppWindowId" in backdrop:
+            fail("a: do not cast AppWindowId.Value to HWND; AttachHwnd owns the Win32 handle")
+        otc = re.search(
+            r"void OnTargetConnected\([\s\S]*?void OnTargetDisconnected",
+            backdrop,
+        )
+        if otc and "ConfigureDwm" in otc.group(0):
+            fail("a: duplicate ConfigureDwm in OnTargetConnected; StripChrome owns DWM setup")
+        if "AttachHwnd" not in backdrop:
+            fail("a: AttachHwnd must own HWND hooking")
+        for needle in (
+            "DwmwaBorderColor",
+            "DwmwaColorNone",
+            "DwmwcpDonotround",
+            "DwmsbtNone",
+            "WmErasebkgnd",
+        ):
+            if needle not in backdrop:
+                fail(f"a: chromeless host missing {needle}")
     host = cs + "\n" + backdrop
     if "DWMWA_BORDER_COLOR" not in host and "34" not in host:
         fail("a: DWMWA_BORDER_COLOR must be set")
@@ -51,6 +70,12 @@ def main() -> int:
         fail("a: SetBorderAndTitleBar(false, false) required")
     if "TransparentBackdrop" not in cs:
         fail("a: Window.SystemBackdrop must use TransparentBackdrop")
+    if "WindowNative.GetWindowHandle" not in cs:
+        fail("a: HWND must come from WindowNative.GetWindowHandle")
+    if re.search(r"SystemBackdrop\s*=\s*new\s+(MicaBackdrop|DesktopAcrylicBackdrop)", cs):
+        fail("a: do not switch SystemBackdrop to Mica/Acrylic")
+    if re.search(r'AddEnum\(\s*"Material"', cs):
+        fail("a: Material is unused for HWND — hide from RMB menu")
 
     # b) compact → expanded morph ~250–300ms
     m = re.search(r"MorphMs\s*=\s*(\d+)", cs)
@@ -77,6 +102,21 @@ def main() -> int:
     clock = re.search(r'<TextBlock\s+x:Name="ClockText"[\s\S]*?/>', xaml)
     if not clock or "MinWidth" not in clock.group(0):
         fail("c: ClockText needs MinWidth so HH:MM vs HH:MM:SS does not reflow")
+    else:
+        mw = re.search(r'MinWidth="(\d+)"', clock.group(0))
+        if not mw:
+            fail("c: ClockText MinWidth missing")
+        else:
+            width = int(mw.group(1))
+            # 64 is tight for tabular Segoe UI Variable SemiBold 12pt HH:MM:SS
+            if width < 72:
+                fail(f"c: ClockText MinWidth={width} may clip tabular HH:MM:SS at 12pt SemiBold")
+            if width > 96:
+                fail(f"c: ClockText MinWidth={width} is wider than needed")
+    if re.search(r"Pill\.Clip\s*=\s*new\s+RectangleGeometry", cs):
+        fail("c: reuse one RectangleGeometry field; do not allocate Clip every SizeChanged")
+    if "_pillClip" not in cs and "RectangleGeometry" not in cs:
+        fail("c: pill clip RectangleGeometry missing")
     if 'x:Name="Pill"' in xaml and 'VerticalAlignment="Top"' not in xaml:
         fail("c: Pill must be top-aligned so hover morph does not drop from the top edge")
     if "PlaceWindow" in cs and re.search(

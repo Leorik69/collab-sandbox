@@ -46,6 +46,7 @@ public sealed partial class MainWindow : Window
     private SolidColorBrush? _keylineBrush;
     private Color _keylineCached;
     private ThemeShadow? _clockNeonShadow;
+    private RectangleGeometry? _pillClip;
 
     public MainWindow()
     {
@@ -145,8 +146,17 @@ public sealed partial class MainWindow : Window
     private void Pill_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         SyncChrome();
-        if (e.NewSize.Width > 0 && e.NewSize.Height > 0)
-            Pill.Clip = new RectangleGeometry { Rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height) };
+        if (e.NewSize.Width <= 0 || e.NewSize.Height <= 0) return;
+        var rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height);
+        if (_pillClip is null)
+        {
+            _pillClip = new RectangleGeometry { Rect = rect };
+            Pill.Clip = _pillClip;
+        }
+        else
+        {
+            _pillClip.Rect = rect;
+        }
     }
 
     private void ApplySettings()
@@ -164,7 +174,8 @@ public sealed partial class MainWindow : Window
         var bg = ParseColor(_settings.BackgroundHex);
         var accent = ParseColor("#FF9F0A"); // CC: paint orange keyline; do not rewrite LocalSettings
         var a = (byte)(255 * Math.Clamp(_settings.Opacity, 0.2, 1.0));
-        // Host stays TransparentBackdrop — Mica/Acrylic on the HWND would recreate the rectangular frame (bug a).
+        // Host stays TransparentBackdrop. Ignore MaterialMode — Mica/Acrylic on the HWND
+        // would recreate the rectangular frame (bug a). Enum kept for LocalSettings JSON.
 
         Pill.Background = new SolidColorBrush(Color.FromArgb(a, bg.R, bg.G, bg.B));
         var keyline = KeylineBrush(accent);
@@ -478,7 +489,7 @@ public sealed partial class MainWindow : Window
         AddEnum("Icons", _settings.IconSet, v => _settings.IconSet = v);
         AddEnum("Icon Pack", _settings.IconPack, v => _settings.IconPack = v);
         AddEnum("Temp", _settings.TempUnit, v => _settings.TempUnit = v);
-        AddEnum("Material", _settings.Material, v => _settings.Material = v);
+        // MaterialMode is unused for HWND (TransparentBackdrop only) — omit from menu.
         menu.Items.Add(new MenuFlyoutSeparator());
         var demo = new MenuFlyoutItem { Text = "Demo +1 unread" };
         demo.Click += (_, _) => { _settings.UnreadCount = Math.Min(99, _settings.UnreadCount + 1); ApplySettings(); };

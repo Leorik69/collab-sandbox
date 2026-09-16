@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using Microsoft.UI.Composition;
+using Microsoft.UI.Composition; // ICompositionSupportsSystemBackdrop
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
@@ -40,18 +40,8 @@ internal sealed class TransparentBackdrop : SystemBackdrop
         _tint = _wuc.CreateColorBrush(Color.FromArgb(0, 0, 0, 0));
         connectedTarget.SystemBackdrop = _tint;
 
-        var hwnd = (IntPtr)(long)(xamlRoot.ContentIslandEnvironment?.AppWindowId.Value ?? 0);
-        if (hwnd != IntPtr.Zero)
-        {
-            _hwnd = hwnd;
-            ConfigureDwm(hwnd);
-            StripChrome(hwnd);
-            Hook(hwnd);
-            var hdc = GetDC(hwnd);
-            ClearBackground(hwnd, hdc);
-            if (hdc != IntPtr.Zero) ReleaseDC(hwnd, hdc);
-        }
-
+        // HWND chrome + subclass: AttachHwnd (Win32 handle from WindowNative).
+        // AppWindowId.Value is not an HWND — do not cast it.
         base.OnTargetConnected(connectedTarget, xamlRoot);
     }
 
@@ -96,12 +86,18 @@ internal sealed class TransparentBackdrop : SystemBackdrop
         if (rgn != IntPtr.Zero) DeleteObject(rgn);
     }
 
+    /// <summary>Owns HWND chrome and WM_ERASEBKGND hook. hwnd from WindowNative.GetWindowHandle.</summary>
     internal void AttachHwnd(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero) return;
+        if (_hwnd != IntPtr.Zero && _hwnd != hwnd)
+            Unhook();
         _hwnd = hwnd;
-        StripChrome(hwnd);
+        StripChrome(hwnd); // DWM attributes + ConfigureDwm (blur-behind 1px) — single setup path
         Hook(hwnd);
+        var hdc = GetDC(hwnd);
+        ClearBackground(hwnd, hdc);
+        if (hdc != IntPtr.Zero) ReleaseDC(hwnd, hdc);
     }
 
     private void Hook(IntPtr hwnd)
