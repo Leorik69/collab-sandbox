@@ -1,8 +1,8 @@
 # NotifyIsland portable launcher (unpackaged, self-contained, win-x64)
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $candidates = @(
-  (Join-Path $root 'NotifyIsland.exe'),
-  (Join-Path $root 'publish\NotifyIsland.exe')
+  (Join-Path $root 'publish\NotifyIsland.exe'),
+  (Join-Path $root 'NotifyIsland.exe')
 )
 foreach ($exe in $candidates) {
   if (Test-Path $exe) { Start-Process $exe; exit 0 }

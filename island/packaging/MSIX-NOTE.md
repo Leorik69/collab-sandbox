@@ -2,10 +2,17 @@
 
 **Решение: ship portable zip, MSIX отложить.**
 
+**Запуск после unzip:** распаковать zip в папку и запустить `Запустить.bat` или
+`NotifyIsland.exe` **из этого каталога** (рядом должны лежать `resources.pri`,
+`Microsoft.ui.xaml.dll`, `Microsoft.WindowsAppRuntime.Bootstrap.dll` и прочий
+self-contained payload). Это тот же layout, что `island/publish/NotifyIsland.exe`
+после `tools/Publish-Portable.ps1`. Один скопированный exe APPCRASHит
+(`Microsoft.UI.Xaml.dll` 0xc000027b) — WinUI грузит PRI/нативные DLL из папки exe.
+
 Причины:
-1. Проект сейчас `WindowsPackageType=None` (unpackaged) + `WindowsAppSDKSelfContained=true`.
-   Портатив собирается одной командой `dotnet publish -r win-x64 --self-contained` без
-   сертификатов и работает рядом с `Assets/` — этого достаточно для drop/005.
+1. Проект сейчас `WindowsPackageType=None` (unpackaged) + `WindowsAppSDKSelfContained=true`
+   + `EnableMsixTooling=true` (чтобы Publish положил app `resources.pri`).
+   Портатив: VS MSBuild `/t:Publish` self-contained `win-x64` без сертификатов.
 2. MSIX требует дополнительно: `Package.appxmanifest`, иконки-тайлы, связка
    `GenerateAppxPackageOnBuild`, тестовый сертификат (`MakeCert`/`New-Self-SignedCertificate`)
    + установка cert на каждой машине + подпись (`SignTool`). Без пайплайна подписи
