@@ -2,6 +2,14 @@
 
 Хаб: https://github.com/Leorik69/collab-sandbox
 
+## 007 активно — Dynamic Island restyle (Packt)
+
+Спека: `drop/007-dynamic-island-restyle.md`  
+Референс: https://github.com/PacktPublishing/Mastering-WidgetKit-in-SwiftUI-4-iOS-16-with-Dynamic-Island (Live Widget UI **404**).
+
+*NB* — чёрная капсула, `PresentationMode` Compact|Expanded|Minimal, morph, orange `#FF9F0A` keyline.  
+*SL* — ревью после PR.
+
 ## 006 активно — Agent Learning Loop (skills + рефлексия)
 
 Спека: https://github.com/Leorik69/collab-sandbox/blob/main/drop/006-agent-learning-loop.md

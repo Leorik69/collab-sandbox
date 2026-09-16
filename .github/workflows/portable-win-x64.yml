@@ -1,0 +1,107 @@
+name: Portable win-x64
+
+on:
+  push:
+    paths:
+      - "island/**"
+      - ".github/workflows/portable-win-x64.yml"
+  pull_request:
+    paths:
+      - "island/**"
+      - ".github/workflows/portable-win-x64.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: portable-win-x64-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: island
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Publish unpackaged self-contained
+        run: ./tools/Publish-Portable.ps1 -Zip
+
+      - name: Verify zip root has exe and launchers
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zipPath = Join-Path (Get-Location) 'NotifyIsland-portable-win-x64.zip'
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+          try {
+            $names = $zip.Entries | ForEach-Object { $_.FullName }
+            foreach ($need in @(
+              'NotifyIsland.exe',
+              'Запустить.bat',
+              'Start-Portable.ps1',
+              'resources.pri',
+              'Microsoft.WindowsAppRuntime.Bootstrap.dll',
+              'Microsoft.ui.xaml.dll'
+            )) {
+              if ($names -notcontains $need) {
+                throw "Zip root missing '$need'. Entries: $($names -join ', ')"
+              }
+            }
+          } finally {
+            $zip.Dispose()
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotifyIsland-portable-win-x64
+          path: island/NotifyIsland-portable-win-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Comment artifact link on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- portable-zip-artifact -->';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+            const body = [
+              marker,
+              'Portable **NotifyIsland-portable-win-x64.zip** (unpackaged `.exe`, не MSIX).',
+              '',
+              `Скачать: [этот run](${runUrl}) → Artifacts → \`NotifyIsland-portable-win-x64\`.`,
+              'Распаковать папку целиком. Запуск: `Запустить.bat` или `NotifyIsland.exe` **в том же каталоге**, что `resources.pri` / `Microsoft.ui.xaml.dll` / Bootstrap (как `island/publish/NotifyIsland.exe`). Не копировать один exe.',
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const found = comments.find(c => c.body && c.body.includes(marker));
+            if (found) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: found.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
