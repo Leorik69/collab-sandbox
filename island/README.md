@@ -12,6 +12,7 @@ Ref: [Packt Dynamic Island](https://github.com/PacktPublishing/Mastering-WidgetK
 
 - Capsule `#0A0A0A` Solid; text `#F5F5F7`; morph `~280ms` (WinUI mapping).
 - Keyline / glow / progress / badge accent **`#FF9F0A`** (CC: FocusTimer-demo orange, not `#0A84FF`).
+- Host HWND is chromeless/transparent — only the capsule is visible. Compact↔Expanded morph ~280ms; hover does not shift the top edge; RMB menu stays open.
 - `PresentationMode`: Compact | Expanded | Minimal. Hover Compact→Expanded and `HH:MM:SS` in expanded = WinUI additions.
 - Fluent instead of SF Symbols. Pulse = scale + opacity, unread only. No idle blue dot.
 - RMB: Presentation + existing clock/weather/icons + **Icon Pack** (light / dark / colorful / mono / neon / pastel). Pack switch applies PNG glyphs, clock digits (`Assets/Packs/clock-styles.md`), and pill background immediately — no restart. Default `dark`.
