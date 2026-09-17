@@ -130,6 +130,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel x:Name="ExpandedLeading" Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <StackPanel x:Name="AppIcons" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" />
                         <FontIcon x:Name="WeatherGlyphExp" Glyph="&#xE706;" FontSize="12" Foreground="#F5F5F7" Visibility="Collapsed" />
                         <Image x:Name="WeatherGlyphExpImage" Width="12" Height="12" Stretch="Uniform" VerticalAlignment="Center" />
                         <TextBlock x:Name="WeatherDesc" FontSize="11" Foreground="#F5F5F7" VerticalAlignment="Center" Text="Clear" />

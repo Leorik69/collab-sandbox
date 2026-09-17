@@ -56,6 +56,13 @@ public sealed partial class MainWindow : Window
         SetupOverlay();
         BuildMorph();
         ApplySettings();
+        _ = ToastNotificationListener.StartAsync(() =>
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (ToastNotificationListener.IsListening)
+                    _settings.UnreadCount = AppNotificationHub.Total;
+                ApplySettings();
+            }));
         _clock.Tick += (_, _) => TickClock();
         _clock.Start();
         TickClock();
@@ -86,13 +93,20 @@ public sealed partial class MainWindow : Window
     private (double w, double h) PillSize()
     {
         if (_settings.Presentation == PresentationMode.Minimal) return (MinimalW, MinimalH);
-        if (IsExpanded()) return (ExpandedW, ExpandedH);
+        if (IsExpanded())
+        {
+            var extra = Math.Min(96, AppNotificationHub.Snapshot().Count * 32);
+            return (ExpandedW + extra, ExpandedH);
+        }
         return (CompactW, CompactH);
     }
 
+    private bool HasAppToasts() =>
+        !_settings.DoNotDisturb && (AppNotificationHub.Total > 0 || _settings.UnreadCount > 0);
+
     private bool IsExpanded() =>
         _settings.Presentation == PresentationMode.Expanded
-        || ((_hovering || _menuOpen) && _settings.Presentation == PresentationMode.Compact);
+        || ((_hovering || _menuOpen || HasAppToasts()) && _settings.Presentation == PresentationMode.Compact);
 
     private bool ShowExpandedExtras() =>
         IsExpanded()
@@ -112,7 +126,7 @@ public sealed partial class MainWindow : Window
 
     private static (int w, int h) HostPixelSize()
     {
-        var w = (int)Math.Clamp(Math.Round(ExpandedW) + PadW, 140, 360);
+        var w = (int)Math.Clamp(Math.Round(ExpandedW) + PadW + 96, 140, 420);
         var h = (int)Math.Clamp(Math.Round(ExpandedH) + PadH, 40, 88);
         return (w, h);
     }
@@ -196,7 +210,8 @@ public sealed partial class MainWindow : Window
             _settings.IconPack, _settings.DoNotDisturb, _settings.UnreadCount > 0));
 
         Dot.Visibility = Visibility.Collapsed;
-        var activity = _settings.UnreadCount > 0 && !_settings.DoNotDisturb;
+        PaintAppIcons();
+        var activity = HasAppToasts();
         Badge.Visibility = activity ? Visibility.Visible : Visibility.Collapsed;
         _settings.SyncDerived();
         BuildUnreadAnim();
@@ -216,6 +231,7 @@ public sealed partial class MainWindow : Window
         ApplyClockStyle();
         ApplyWeather();
         ApplyContentContrast();
+        PaintAppIcons();
         ApplyPresentation();
         _settings.Save();
     }
@@ -477,6 +493,34 @@ public sealed partial class MainWindow : Window
         WeatherRange.Foreground = muted;
     }
 
+    private void PaintAppIcons()
+    {
+        AppIcons.Children.Clear();
+        foreach (var app in AppNotificationHub.Snapshot())
+        {
+            var chip = new Border
+            {
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(6, 1, 6, 1),
+                Background = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
+                Tag = app
+            };
+            chip.Child = new TextBlock
+            {
+                Text = $"{app.Name.Trim()[..Math.Min(3, app.Name.Trim().Length)]} {app.Count}",
+                FontSize = 10,
+                Foreground = ClockText.Foreground
+            };
+            chip.Tapped += (_, e) =>
+            {
+                OpenNotificationCenter();
+                e.Handled = true;
+            };
+            AppIcons.Children.Add(chip);
+        }
+        AppIcons.Visibility = AppIcons.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private static void SetPackImage(Image image, string uri)
     {
         if (image.Source is BitmapImage existing && existing.UriSource?.OriginalString == uri)
@@ -572,10 +616,21 @@ public sealed partial class MainWindow : Window
         // MaterialMode is unused for HWND (TransparentBackdrop only) — omit from menu.
         menu.Items.Add(new MenuFlyoutSeparator());
         var demo = new MenuFlyoutItem { Text = "Demo +1 unread" };
-        demo.Click += (_, _) => { _settings.UnreadCount = Math.Min(99, _settings.UnreadCount + 1); ApplySettings(); };
+        demo.Click += (_, _) =>
+        {
+            var names = new[] { "Telegram", "Discord", "Mail" };
+            AppNotificationHub.Bump(names[_settings.UnreadCount % names.Length]);
+            _settings.UnreadCount = Math.Min(99, AppNotificationHub.Total);
+            ApplySettings();
+        };
         menu.Items.Add(demo);
         var clear = new MenuFlyoutItem { Text = "Clear unread" };
-        clear.Click += (_, _) => { _settings.UnreadCount = 0; ApplySettings(); };
+        clear.Click += (_, _) =>
+        {
+            AppNotificationHub.Clear();
+            _settings.UnreadCount = 0;
+            ApplySettings();
+        };
         menu.Items.Add(clear);
 
         _menuOpen = true;
