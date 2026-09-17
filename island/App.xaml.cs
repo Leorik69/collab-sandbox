@@ -7,10 +7,17 @@ namespace NotifyIsland;
 
 public partial class App : Application
 {
+    public static bool DemoMode { get; private set; }
+
     private Window? _window;
 
     public App()
     {
+        foreach (var a in Environment.GetCommandLineArgs())
+        {
+            if (string.Equals(a, "--demo", StringComparison.OrdinalIgnoreCase))
+                DemoMode = true;
+        }
         UnhandledException += (_, e) =>
         {
             Log("xaml", e.Exception);

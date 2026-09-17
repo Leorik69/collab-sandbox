@@ -95,6 +95,11 @@ public sealed class IslandSettings
     public bool FollowSystemTheme { get; set; } = false;
     public bool DoNotDisturb { get; set; } = false;
     public int UnreadCount { get; set; } = 0;
+    public bool StartWithWindows { get; set; } = false;
+    public int TopOffsetPx { get; set; } = 8;
+    public int NotificationDurationMs { get; set; } = 4000;
+    public bool SoundEnabled { get; set; } = false;
+    public bool AnimationsEnabled { get; set; } = true;
     public bool PulseAura { get; set; } = true;
     public UnreadAnimation UnreadAnim { get; set; } = UnreadAnimation.Pulse;
     public bool BorderGlow { get; set; } = false;
@@ -137,6 +142,8 @@ public sealed class IslandSettings
         BorderGlow = IslandGlowIntensity > 0.02;
         ClockGlow = ClockGlowIntensity > 0.02;
         BorderThickness = Math.Clamp(BorderThickness, 0.5, 4);
+        NotificationDurationMs = Math.Clamp(NotificationDurationMs, 500, 30000);
+        TopOffsetPx = Math.Clamp(TopOffsetPx, 0, 80);
         IslandGlowIntensity = Math.Clamp(IslandGlowIntensity, 0, 1);
         ClockGlowIntensity = Math.Clamp(ClockGlowIntensity, 0, 1);
         Opacity = Math.Clamp(Opacity, 0.2, 1);

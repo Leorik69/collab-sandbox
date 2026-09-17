@@ -40,6 +40,13 @@
                 </ComboBox>
 
                 <ToggleSwitch x:Name="ThemeSwitch" Header="Тема окна" OffContent="Светлая" OnContent="Тёмная" Toggled="OnThemeToggled" />
+
+                <TextBlock Text="Система" FontSize="12" Opacity="0.55" />
+                <ToggleSwitch x:Name="AutostartSwitch" Header="Запуск с Windows" Toggled="OnFlags" />
+                <ToggleSwitch x:Name="AnimSwitch" Header="Анимации" Toggled="OnFlags" />
+                <ToggleSwitch x:Name="SoundSwitch" Header="Звук" Toggled="OnFlags" />
+                <TextBlock Text="Длительность уведомления, мс" FontSize="11" Opacity="0.7" />
+                <Slider x:Name="NotifySlider" Minimum="800" Maximum="12000" StepFrequency="200" ValueChanged="OnSlider" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

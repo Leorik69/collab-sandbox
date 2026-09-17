@@ -25,14 +25,21 @@ public sealed partial class MainWindow : Window
     private const byte VkLwin = 0x5B;
     private const byte VkN = 0x4E;
 
-    // Sizes + 280ms: WinUI mapping (Packt Live Widget sources are 404).
+    // Sizes + morph: window sized to the capsule so DWM has no spare chrome rectangle.
     private const double MinimalW = 120, MinimalH = 28;
-    private const double CompactW = 176, CompactH = 32;
-    private const double ExpandedW = 248, ExpandedH = 52;
-    private const int MorphMs = 280;
-    private const int PadW = 32, PadH = 16;
+    private const double CompactW = OverlayTokens.CollapsedW, CompactH = OverlayTokens.CollapsedH;
+    private const double ExpandedW = 400, ExpandedH = 88;
+    private const int MorphMs = 260;
+    private const int PadW = 4, PadH = 4;
+    private const int WsExNoactivate = 0x08000000;
+    private const int WsExToolwindow = 0x00000080;
+    private const int GwlExstyle = -20;
 
     private IslandSettings _settings = IslandSettings.Load();
+    private readonly OverlayMachine _overlay = new();
+    private DispatcherTimer? _overlayTick;
+    private DispatcherTimer? _demoTimer;
+    private bool _demoRunning;
     private SettingsWindow? _settingsUi;
     private Storyboard? _pulse;
     private Storyboard? _morph;
@@ -66,7 +73,15 @@ public sealed partial class MainWindow : Window
         _clock.Tick += (_, _) => TickClock();
         _clock.Start();
         TickClock();
-        Closed += (_, _) => { _clock.Stop(); _settings.Save(); };
+        Closed += (_, _) =>
+        {
+            _clock.Stop();
+            _overlayTick?.Stop();
+            _demoTimer?.Stop();
+            _settings.Save();
+        };
+        Root.IsTabStop = true;
+        Root.KeyDown += Overlay_KeyDown;
     }
 
     private void SetupOverlay()
@@ -86,17 +101,70 @@ public sealed partial class MainWindow : Window
         var host = new TransparentBackdrop();
         SystemBackdrop = host;
         host.AttachHwnd(hwnd);
+        TryNoActivate(hwnd);
+        _overlay.NotifyDurationMs = _settings.NotificationDurationMs;
         PlaceWindow();
         Reposition();
+        StartOverlayTick();
+        if (App.DemoMode)
+            StartDemoLoop();
+    }
+
+    private void TryNoActivate(IntPtr hwnd)
+    {
+        try
+        {
+            var ex = GetWindowLong(hwnd, GwlExstyle);
+            SetWindowLong(hwnd, GwlExstyle, ex | WsExNoactivate | WsExToolwindow);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("exstyle", ex.ToString());
+        }
+    }
+
+    private void StartOverlayTick()
+    {
+        _overlayTick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        _overlayTick.Tick += (_, _) =>
+        {
+            var before = _overlay.Snapshot().Kind;
+            _overlay.Tick(200);
+            PaintOverlay();
+            if (before != _overlay.Snapshot().Kind)
+                ApplyPresentation();
+        };
+        _overlayTick.Start();
+    }
+
+    private void StartDemoLoop()
+    {
+        _demoRunning = true;
+        _demoTimer?.Stop();
+        _demoTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.4) };
+        _demoTimer.Tick += (_, _) =>
+        {
+            _overlay.Dispatch(OverlayCommand.DemoNext);
+            ApplyPresentation();
+            PaintOverlay();
+        };
+        _demoTimer.Start();
+        _overlay.Dispatch(OverlayCommand.DemoNext);
+        PaintOverlay();
     }
 
     private (double w, double h) PillSize()
     {
+        var snap = _overlay.Snapshot();
+        if (snap.Kind is not OverlayKind.Idle and not OverlayKind.Collapsed)
+            return (snap.Width, snap.Height);
         if (_settings.Presentation == PresentationMode.Minimal) return (MinimalW, MinimalH);
         if (IsExpanded())
         {
-            var extra = Math.Min(96, AppNotificationHub.Snapshot().Count * 32);
-            return (ExpandedW + extra, ExpandedH);
+            var extra = Math.Min(100, AppNotificationHub.Snapshot().Count * 32);
+            var w = Math.Clamp(ExpandedW + extra, OverlayTokens.ExpandedMinW, OverlayTokens.ExpandedMaxW);
+            var h = Math.Clamp(ExpandedH, OverlayTokens.ExpandedMinH, OverlayTokens.ExpandedMaxH);
+            return (w, h);
         }
         return (CompactW, CompactH);
     }
@@ -124,10 +192,22 @@ public sealed partial class MainWindow : Window
         SyncChrome();
     }
 
-    private static (int w, int h) HostPixelSize()
+    private (int w, int h) HostPixelSize()
     {
-        var w = (int)Math.Clamp(Math.Round(ExpandedW) + PadW + 96, 140, 420);
-        var h = (int)Math.Clamp(Math.Round(ExpandedH) + PadH, 40, 88);
+        var scale = 1.0;
+        try
+        {
+            if (Content?.XamlRoot is { } root && root.RasterizationScale > 0)
+                scale = root.RasterizationScale;
+        }
+        catch { /* first layout */ }
+
+        var snap = _overlay.Snapshot();
+        var pw = snap.Width;
+        var ph = snap.Height;
+        if (pw < 8) (pw, ph) = PillSize();
+        var w = (int)Math.Clamp(Math.Round((pw + PadW) * scale), 80, 720);
+        var h = (int)Math.Clamp(Math.Round((ph + PadH) * scale), 28, 280);
         return (w, h);
     }
 
@@ -136,7 +216,9 @@ public sealed partial class MainWindow : Window
         if (_appWindow is null) return;
         var wa = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
         var (w, h) = HostPixelSize();
-        _appWindow.MoveAndResize(new RectInt32(wa.X + (wa.Width - w) / 2, wa.Y + 6, w, h));
+        var x = wa.X + (wa.Width - w) / 2;
+        var y = wa.Y + Math.Max(6, _settings.TopOffsetPx);
+        _appWindow.MoveAndResize(new RectInt32(x, y, w, h));
     }
 
     private void SyncChrome()
@@ -179,18 +261,30 @@ public sealed partial class MainWindow : Window
         }
         else if (!_settings.CustomPalette)
         {
-            _settings.BackgroundHex = IconPackTheme.PillBackgroundHex(_settings.IconPack);
+            _settings.BackgroundHex = _settings.IconPack == IconPack.Light
+                ? IconPackTheme.PillBackgroundHex(_settings.IconPack)
+                : OverlayTokens.FillHex;
         }
 
         var bg = ParseColor(_settings.BackgroundHex);
-        var accent = ParseColor(_settings.AccentHex);
-        var border = ParseColor(_settings.BorderHex);
+        var accent = ParseColor(_settings.CustomPalette ? _settings.AccentHex : OverlayTokens.AccentHex);
+        var border = ParseColor(_settings.CustomPalette ? _settings.BorderHex : OverlayTokens.AccentHex);
         var a = (byte)(255 * Math.Clamp(_settings.Opacity, 0.2, 1.0));
         // Host stays TransparentBackdrop. Ignore MaterialMode — Mica/Acrylic on the HWND
         // would recreate the rectangular frame (bug a). Enum kept for LocalSettings JSON.
 
-        Pill.Background = new SolidColorBrush(Color.FromArgb(a, bg.R, bg.G, bg.B));
-        var keyline = KeylineBrush(border);
+        Pill.Background = new LinearGradientBrush
+        {
+            StartPoint = new Windows.Foundation.Point(0.5, 0),
+            EndPoint = new Windows.Foundation.Point(0.5, 1),
+            GradientStops =
+            {
+                new GradientStop { Color = Color.FromArgb(a, bg.R, bg.G, bg.B), Offset = 0 },
+                new GradientStop { Color = Color.FromArgb(a, (byte)Math.Min(255, bg.R + 18), (byte)Math.Min(255, bg.G + 18), (byte)Math.Min(255, bg.B + 22)), Offset = 1 }
+            }
+        };
+        Pill.Shadow = new ThemeShadow();
+        var keyline = KeylineBrush(Color.FromArgb(40, 255, 255, 255));
         var stroke = Math.Clamp(_settings.BorderThickness, 0.5, 4);
         Pill.BorderBrush = keyline;
         Pill.BorderThickness = new Thickness(stroke);
@@ -232,6 +326,9 @@ public sealed partial class MainWindow : Window
         ApplyWeather();
         ApplyContentContrast();
         PaintAppIcons();
+        OverlayStartup.Apply(_settings.StartWithWindows);
+        _overlay.NotifyDurationMs = _settings.NotificationDurationMs;
+        PaintOverlay();
         ApplyPresentation();
         _settings.Save();
     }
@@ -521,6 +618,95 @@ public sealed partial class MainWindow : Window
         AppIcons.Visibility = AppIcons.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    private void PaintOverlay()
+    {
+        var snap = _overlay.Snapshot();
+        var kind = snap.Kind;
+        var p = snap.Payload;
+        var overlayOn = kind is OverlayKind.Notification or OverlayKind.Progress or OverlayKind.Media
+            or OverlayKind.Timer or OverlayKind.Error or OverlayKind.Expanded;
+        OverlayPanel.Visibility = overlayOn ? Visibility.Visible : Visibility.Collapsed;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(OverlayPanel, kind.ToString());
+        OverlayTitle.Text = string.IsNullOrWhiteSpace(p.Title) ? FallbackTitle(kind) : p.Title;
+        OverlayTitle.TextTrimming = TextTrimming.CharacterEllipsis;
+        OverlaySubtitle.Text = string.IsNullOrWhiteSpace(p.Subtitle)
+            ? p.Body
+            : p.Subtitle;
+        OverlaySubtitle.TextTrimming = TextTrimming.CharacterEllipsis;
+        OverlaySubtitle.Visibility = string.IsNullOrWhiteSpace(OverlaySubtitle.Text)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        OverlayProgress.Value = p.Progress * 100;
+        OverlayProgress.Visibility = kind is OverlayKind.Progress or OverlayKind.Media
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        OverlayProgress.ShowError = kind == OverlayKind.Error;
+        MediaPlayIcon.Glyph = p.Playing ? "\uE769" : "\uE768";
+        MediaPlay.Visibility = kind == OverlayKind.Media ? Visibility.Visible : Visibility.Collapsed;
+        OverlayTimer.Text = kind == OverlayKind.Timer
+            ? TimeSpan.FromSeconds(Math.Ceiling(p.RemainingSeconds)).ToString(@"mm\:ss")
+            : "";
+        OverlayTimer.Visibility = kind == OverlayKind.Timer ? Visibility.Visible : Visibility.Collapsed;
+        var err = kind == OverlayKind.Error;
+        OverlayTitle.Foreground = new SolidColorBrush(err
+            ? ParseColor(OverlayTokens.ErrorHex)
+            : ParseColor(OverlayTokens.TextHex));
+        CompactLeading.HorizontalAlignment = overlayOn || IsExpanded() ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        var hideTrailing = !overlayOn && !IsExpanded() && kind is OverlayKind.Idle or OverlayKind.Collapsed;
+        CompactTrailing.Opacity = hideTrailing ? 0 : 1;
+        ToolTipService.SetToolTip(Pill, kind switch
+        {
+            OverlayKind.Error => OverlayTitle.Text,
+            OverlayKind.Media => OverlayTitle.Text,
+            OverlayKind.Notification => OverlayTitle.Text,
+            _ => "NotifyIsland"
+        });
+        ToolTipService.SetToolTip(MediaPlay, p.Playing ? "Пауза" : "Воспроизведение");
+    }
+
+    private static string FallbackTitle(OverlayKind kind) => kind switch
+    {
+        OverlayKind.Notification => "Уведомление",
+        OverlayKind.Progress => "Прогресс",
+        OverlayKind.Media => "Без названия",
+        OverlayKind.Timer => "Таймер",
+        OverlayKind.Error => "Ошибка",
+        OverlayKind.Expanded => "Обзор",
+        _ => ""
+    };
+
+    private void Overlay_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.F9)
+        {
+            if (_demoRunning)
+            {
+                _demoTimer?.Stop();
+                _demoRunning = false;
+                _overlay.Dispatch(OverlayCommand.Clear);
+            }
+            else
+                StartDemoLoop();
+            PaintOverlay();
+            e.Handled = true;
+        }
+        else if (e.Key == Windows.System.VirtualKey.Escape)
+        {
+            _overlay.Dispatch(OverlayCommand.Collapse);
+            PaintOverlay();
+            e.Handled = true;
+        }
+    }
+
+    private void MediaPlay_Click(object sender, RoutedEventArgs e)
+    {
+        var snap = _overlay.Snapshot();
+        var next = OverlayMachine.Sanitize(snap.Payload);
+        next.Playing = !next.Playing;
+        _overlay.Dispatch(OverlayCommand.SetMedia, next);
+        PaintOverlay();
+    }
+
     private static void SetPackImage(Image image, string uri)
     {
         if (image.Source is BitmapImage existing && existing.UriSource?.OriginalString == uri)
@@ -615,6 +801,20 @@ public sealed partial class MainWindow : Window
         AddEnum("Temp", _settings.TempUnit, v => _settings.TempUnit = v);
         // MaterialMode is unused for HWND (TransparentBackdrop only) — omit from menu.
         menu.Items.Add(new MenuFlyoutSeparator());
+        var demoAll = new MenuFlyoutItem { Text = "Demo все состояния (F9)" };
+        demoAll.Click += (_, _) =>
+        {
+            if (_demoRunning)
+            {
+                _demoTimer?.Stop();
+                _demoRunning = false;
+                _overlay.Dispatch(OverlayCommand.Clear);
+            }
+            else
+                StartDemoLoop();
+            PaintOverlay();
+        };
+        menu.Items.Add(demoAll);
         var demo = new MenuFlyoutItem { Text = "Demo +1 unread" };
         demo.Click += (_, _) =>
         {
@@ -668,4 +868,10 @@ public sealed partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 }

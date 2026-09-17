@@ -10,7 +10,7 @@
             Height="36"
             CornerRadius="18"
             BorderThickness="2"
-            BorderBrush="#FF9F0A"
+            BorderBrush="#28FFFFFF"
             Background="Transparent"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
@@ -19,11 +19,12 @@
             IsHitTestVisible="False" />
         <Border
             x:Name="Pill"
-            Width="176"
-            Height="32"
-            CornerRadius="16"
+            Width="180"
+            Height="34"
+            CornerRadius="17"
             BorderThickness="1"
-            BorderBrush="#FF9F0A"
+            BorderBrush="#28FFFFFF"
+            Background="#080808"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
             Margin="0,4,0,0"
@@ -54,7 +55,7 @@
                         Grid.Column="0"
                         Orientation="Vertical"
                         VerticalAlignment="Center"
-                        HorizontalAlignment="Left"
+                        HorizontalAlignment="Center"
                         Spacing="1">
                         <Grid HorizontalAlignment="Left">
                             <TextBlock
@@ -73,7 +74,7 @@
                                 FontSize="12"
                                 FontWeight="SemiBold"
                                 MinWidth="80"
-                                Foreground="#F5F5F7"
+                                Foreground="#FFFFFF"
                                 Typography.NumeralAlignment="Tabular"
                                 Text="00:00" />
                         </Grid>
@@ -136,10 +137,29 @@
                         <TextBlock x:Name="WeatherDesc" FontSize="11" Foreground="#F5F5F7" VerticalAlignment="Center" Text="Clear" />
                     </StackPanel>
                     <StackPanel x:Name="ExpandedTrailing" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock x:Name="WeatherFeels" FontSize="10" Foreground="#A0A0A8" VerticalAlignment="Center" Text="feels 16°" />
-                        <TextBlock x:Name="WeatherRange" FontSize="10" Foreground="#A0A0A8" VerticalAlignment="Center" Text="12° / 21°" />
+                        <TextBlock x:Name="WeatherFeels" FontSize="10" Foreground="#C8C8CC" VerticalAlignment="Center" Text="feels 16°" />
+                        <TextBlock x:Name="WeatherRange" FontSize="10" Foreground="#C8C8CC" VerticalAlignment="Center" Text="12° / 21°" />
                     </StackPanel>
                 </Grid>
+                <StackPanel x:Name="OverlayPanel" Spacing="4" Visibility="Collapsed" Margin="0,4,0,2">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="2">
+                            <TextBlock x:Name="OverlayTitle" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" Text="Обзор" />
+                            <TextBlock x:Name="OverlaySubtitle" FontSize="11" Foreground="#C8C8CC" TextTrimming="CharacterEllipsis" Text="" />
+                        </StackPanel>
+                        <Button x:Name="MediaPlay" Grid.Column="1" Width="32" Height="32" Padding="0" Click="MediaPlay_Click"
+                                Background="Transparent" BorderThickness="0" AutomationProperties.Name="Воспроизведение"
+                                ToolTipService.ToolTip="Воспроизведение">
+                            <FontIcon x:Name="MediaPlayIcon" Glyph="&#xE768;" FontSize="12" Foreground="#3D9CF0" />
+                        </Button>
+                    </Grid>
+                    <ProgressBar x:Name="OverlayProgress" Height="4" Minimum="0" Maximum="100" Foreground="#3D9CF0" Background="#22FFFFFF" />
+                    <TextBlock x:Name="OverlayTimer" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF" Visibility="Collapsed" />
+                </StackPanel>
             </StackPanel>
         </Border>
     </Grid>

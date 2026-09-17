@@ -50,6 +50,10 @@ public sealed partial class SettingsWindow : Window
         IslandGlowSlider.Value = _s.IslandGlowIntensity;
         ClockGlowSlider.Value = _s.ClockGlowIntensity;
         BorderSlider.Value = _s.BorderThickness;
+        AutostartSwitch.IsOn = _s.StartWithWindows;
+        AnimSwitch.IsOn = _s.AnimationsEnabled;
+        SoundSwitch.IsOn = _s.SoundEnabled;
+        NotifySlider.Value = _s.NotificationDurationMs;
         PaintSwatches();
     }
 
@@ -109,8 +113,15 @@ public sealed partial class SettingsWindow : Window
         _s.IslandGlowIntensity = IslandGlowSlider.Value;
         _s.ClockGlowIntensity = ClockGlowSlider.Value;
         _s.BorderThickness = BorderSlider.Value;
+        _s.StartWithWindows = AutostartSwitch.IsOn;
+        _s.AnimationsEnabled = AnimSwitch.IsOn;
+        _s.SoundEnabled = SoundSwitch.IsOn;
+        _s.NotificationDurationMs = (int)NotifySlider.Value;
+        OverlayStartup.Apply(_s.StartWithWindows);
         Persist();
     }
+
+    private void OnFlags(object sender, RoutedEventArgs e) => Pull();
 
     private void OnThemeToggled(object sender, RoutedEventArgs e)
     {
