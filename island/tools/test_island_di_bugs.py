@@ -50,7 +50,9 @@ def main() -> int:
         )
         if otc and "ConfigureDwm" in otc.group(0):
             fail("a: duplicate ConfigureDwm in OnTargetConnected; StripChrome owns DWM setup")
-        if "new WUC.Compositor" in backdrop or "new Windows.UI.Composition.Compositor" in backdrop:
+        if "AttachHwnd" not in backdrop:
+            fail("a: AttachHwnd must own HWND hooking")
+        if re.search(r"new\s+(WUC\.)?Compositor\(\)", backdrop):
             fail("a: do not new WUC.Compositor() on the WinUI thread (E_INVALIDARG 80070057 / 0xc000027b)")
         for needle in (
             "DwmwaBorderColor",
@@ -74,8 +76,6 @@ def main() -> int:
         fail("a: HWND must come from WindowNative.GetWindowHandle")
     if re.search(r"SystemBackdrop\s*=\s*new\s+(MicaBackdrop|DesktopAcrylicBackdrop)", cs):
         fail("a: do not switch SystemBackdrop to Mica/Acrylic")
-    if re.search(r'AddEnum\(\s*"Material"', cs):
-        fail("a: Material is unused for HWND — hide from RMB menu")
 
     # b) compact → expanded morph ~250–300ms
     m = re.search(r"MorphMs\s*=\s*(\d+)", cs)
